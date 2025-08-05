@@ -1,44 +1,50 @@
+"use client";
+
 import { Star } from "lucide-react";
 
-const reviews = [
+const testimonials = [
   {
-    name: "Emma L.",
+    name: "Maria Hansen",
+    text: "Behandlingen var &quot;utrolig profesjonell&quot;. Jeg følte meg avslappet og godt ivaretatt. Anbefales!",
     rating: 5,
-    text: "Utrolig god massasjeopplevelse! Jeg følte meg avslappet og godt ivaretatt. Kommer definitivt tilbake.",
   },
   {
-    name: "Nora M.",
+    name: "Elin Berg",
+    text: "Fantastisk service! Jeg kommer definitivt tilbake. Følte meg ny etter massasjen.",
     rating: 5,
-    text: "Profesjonell service og hyggelig personale. Anbefales på det sterkeste!",
   },
   {
-    name: "Sofie A.",
+    name: "Kari Nilsen",
+    text: "Jeg prøvde RF-løft for første gang og er imponert over resultatet. Profesjonelt og behagelig miljø.",
     rating: 4,
-    text: "Flott sted med rolig atmosfære. Fikk god behandling og veiledning. Litt ventetid, men verdt det.",
   },
 ];
 
 export default function Testimonials() {
   return (
-    <section className="bg-gray-50 py-16">
-      <div className="max-w-5xl mx-auto px-4">
-        <h2 className="text-3xl font-bold text-center mb-12 text-black">
-          Hva sier kundene våre?
+    <section className="py-16 bg-pink-50">
+      <div className="max-w-4xl mx-auto px-4">
+        <h2 className="text-3xl font-bold text-center text-black mb-10">
+          Kundeanmeldelser
         </h2>
 
         <div className="grid gap-8 md:grid-cols-3">
-          {reviews.map((review, idx) => (
+          {testimonials.map((t, index) => (
             <div
-              key={idx}
-              className="bg-white p-6 rounded-lg shadow hover:shadow-md transition"
+              key={index}
+              className="bg-white rounded-lg shadow-md p-6 text-gray-700"
             >
               <div className="flex mb-2">
-                {Array.from({ length: review.rating }).map((_, i) => (
-                  <Star key={i} size={18} fill="#fbbf24" stroke="#fbbf24" />
+                {[...Array(t.rating)].map((_, i) => (
+                  <Star
+                    key={i}
+                    size={16}
+                    className="text-yellow-500 fill-yellow-500"
+                  />
                 ))}
               </div>
-              <p className="text-gray-700 italic mb-4">"{review.text}"</p>
-              <p className="font-semibold text-pink-600">– {review.name}</p>
+              <p className="text-sm mb-4">{t.text}</p>
+              <p className="font-semibold">{t.name}</p>
             </div>
           ))}
         </div>
