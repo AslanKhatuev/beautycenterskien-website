@@ -5,7 +5,7 @@ import { Star } from "lucide-react";
 const testimonials = [
   {
     name: "Maria Hansen",
-    text: "Behandlingen var &quot;utrolig profesjonell&quot;. Jeg følte meg avslappet og godt ivaretatt. Anbefales!",
+    text: 'Behandlingen var "utrolig profesjonell". Jeg følte meg avslappet og godt ivaretatt. Anbefales!',
     rating: 5,
   },
   {
