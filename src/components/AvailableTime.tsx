@@ -1,10 +1,11 @@
-interface Props {
+interface AvailableTimesProps {
   date: Date;
   selectedTime: string | null;
   onSelectTime: (time: string) => void;
 }
 
-const dummyTimes = [
+// Dummy tider – disse kan hentes fra backend senere
+const dummyTimes: string[] = [
   "08:00",
   "09:00",
   "10:00",
@@ -14,14 +15,17 @@ const dummyTimes = [
   "16:00",
 ];
 
-export default function AvailableTimes({ selectedTime, onSelectTime }: Props) {
+export default function AvailableTimes({
+  selectedTime,
+  onSelectTime,
+}: AvailableTimesProps) {
   return (
     <div className="mb-8 w-full">
-      <h2 className="text-xl font-semibold mb-4 text-gray-800 text-center sm:text-left">
+      <h2 className="text-xl font-semibold mb-4 text-white text-center sm:text-left">
         Ledige tider:
       </h2>
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 justify-items-center">
-        {dummyTimes.map((time) => (
+        {dummyTimes.map((time: string) => (
           <button
             key={time}
             onClick={() => onSelectTime(time)}
