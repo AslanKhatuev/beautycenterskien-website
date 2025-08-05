@@ -2,34 +2,56 @@
 
 export default function AboutPage() {
   return (
-    <section className="max-w-3xl mx-auto px-6 py-12">
-      <h1 className="text-4xl font-bold text-center mb-8">Om oss</h1>
+    <main className="bg-black text-white min-h-screen py-16 px-6">
+      <div className="max-w-4xl mx-auto">
+        <h1 className="text-4xl md:text-5xl font-bold text-center mb-10">
+          Velkommen til Beauty Center Skien
+        </h1>
 
-      <div className="space-y-6 text-gray-700 text-lg leading-relaxed">
-        <p>
-          Velkommen til <strong>Beautycenter Skien</strong> – en plass hvor ro,
-          velvære og profesjonell behandling står i fokus.
-        </p>
+        <div className="border-b border-pink-500 w-24 mx-auto mb-12" />
 
-        <p>
-          Vi tilbyr et bredt utvalg av skjønnhets- og velværebehandlinger,
-          inkludert hudpleie, massasje, RF-løft, vakuum og lymfedrenasje. Vårt
-          mål er å gi deg en opplevelse som både styrker kroppen og sinnet.
-        </p>
+        <div className="space-y-8 text-base md:text-lg leading-relaxed text-gray-200">
+          <p>
+            Her blir omsorg til kunst, og berøring en kilde til helse og
+            skjønnhet.
+          </p>
 
-        <p>
-          Våre terapeuter er erfarne, sertifiserte og lidenskapelige med fokus
-          på personlig oppfølging og behandling tilpasset dine behov.
-        </p>
+          <p>
+            Her møter du <strong className="text-white">Viktoria</strong> og{" "}
+            <strong className="text-white">Natalia</strong>. To kvinner, to
+            fagpersoner, to hjerter som jobber i harmoni for at du skal føle deg
+            fantastisk – både på utsiden og innsiden.
+          </p>
 
-        <p>
-          Salongen ligger sentralt i Skien, i rolige omgivelser – perfekt for en
-          avslappende pause fra hverdagen. Hos oss får du profesjonell pleie i
-          en trygg og behagelig atmosfære.
-        </p>
+          <div className="space-y-6">
+            <p>
+              <span role="img" aria-label="massasje">
+                💆‍♀️
+              </span>{" "}
+              <strong className="text-white">Viktoria</strong> – utdannet
+              massasjeterapeut med erfaring og intuisjon. Hendene mine vet hvor
+              det gjør vondt, hvor trettheten sitter, og hvor spenningene har
+              samlet seg – og hvordan man løser det. Jeg spesialiserer meg på
+              lymfedrenasje, anti-cellulitt- og avslappende massasjer, samt dyp
+              muskelbehandling og stresspunkter. For meg er massasje mer enn
+              bare en behandling – det er en måte å hjelpe kroppen til å huske
+              følelsen av letthet.
+            </p>
 
-        <p>Vi gleder oss til å ønske deg velkommen!</p>
+            <p>
+              <span role="img" aria-label="kosmetolog">
+                💄
+              </span>{" "}
+              <strong className="text-white">Natalia</strong> – kosmetolog med
+              magiske hender og et varmt hjerte. Over 20 år i yrket og tusenvis
+              av takknemlige kunder. Jeg jobber med huden skånsomt, bevisst og
+              effektivt. Rens, pleie, løft, anti-aldringsprosedyrer – alt
+              tilpasses individuelt og gjøres med kjærlighet. Skjønnhet begynner
+              med omsorg, og jeg gjør den tilgjengelig.
+            </p>
+          </div>
+        </div>
       </div>
-    </section>
+    </main>
   );
 }
