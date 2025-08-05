@@ -8,7 +8,7 @@ const navLinks = [
   { label: "Hjem", href: "/" },
   { label: "Om oss", href: "/about" },
   { label: "Tjenester", href: "/tjenester" },
-  { label: "Booking", href: "/booking" },
+  { label: "Bestill time", href: "/booking" },
   { label: "Kontakt", href: "/kontakt" },
 ];
 
