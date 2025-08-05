@@ -17,7 +17,7 @@ const services = [
   },
   {
     title: "RF-løft",
-    image: "/icons/rf-lift.png",
+    image: "/vika.jpg",
     description: "Oppstrammende behandling med radiofrekvens.",
   },
 ];
