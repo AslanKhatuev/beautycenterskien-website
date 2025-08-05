@@ -1,6 +1,11 @@
 "use client";
 
 import { useState } from "react";
+import {
+  validateEmail,
+  validateTelefon,
+  validateMelding,
+} from "@/utils/contactValidation";
 
 export default function KontaktPage() {
   const [formData, setFormData] = useState({
@@ -19,17 +24,6 @@ export default function KontaktPage() {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const validateEmail = (email: string) => {
-    const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return re.test(email);
-  };
-
-  // Kun 8-sifrede norske numre tillatt (f.eks. 96809506)
-  const validateTelefon = (telefon: string) => {
-    const re = /^\d{8}$/;
-    return re.test(telefon);
-  };
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -40,6 +34,11 @@ export default function KontaktPage() {
 
     if (!validateTelefon(formData.telefon)) {
       setError("Telefonnummer må være 8 siffer (f.eks. 96809506).");
+      return;
+    }
+
+    if (!validateMelding(formData.melding)) {
+      setError("Meldingen må være mellom 10 og 256 tegn.");
       return;
     }
 
@@ -112,7 +111,7 @@ export default function KontaktPage() {
               required
               value={formData.navn}
               onChange={handleChange}
-              className="w-full mt-2 border border-gray-300 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-400 transition"
+              className="w-full mt-2 border border-gray-300 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-400 transition text-black"
             />
           </div>
 
@@ -130,7 +129,7 @@ export default function KontaktPage() {
               required
               value={formData.epost}
               onChange={handleChange}
-              className="w-full mt-2 border border-gray-300 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-400 transition"
+              className="w-full mt-2 border border-gray-300 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-400 transition text-black"
             />
           </div>
 
@@ -149,7 +148,7 @@ export default function KontaktPage() {
               value={formData.telefon}
               onChange={handleChange}
               placeholder="f.eks. 96809506"
-              className="w-full mt-2 border border-gray-300 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-400 transition"
+              className="w-full mt-2 border border-gray-300 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-400 transition text-black"
             />
           </div>
 
@@ -164,11 +163,23 @@ export default function KontaktPage() {
               id="melding"
               name="melding"
               required
+              maxLength={256}
               value={formData.melding}
               onChange={handleChange}
               rows={5}
-              className="w-full mt-2 border border-gray-300 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-400 transition"
+              className={`w-full mt-2 border p-3 rounded-lg text-black focus:outline-none focus:ring-2 transition ${
+                formData.melding.length < 10
+                  ? "border-red-400 focus:ring-red-400"
+                  : "border-green-400 focus:ring-green-400"
+              }`}
             ></textarea>
+            <p
+              className={`text-sm mt-1 text-right ${
+                formData.melding.length < 10 ? "text-red-600" : "text-green-600"
+              }`}
+            >
+              {formData.melding.length} / 256
+            </p>
           </div>
 
           <button
