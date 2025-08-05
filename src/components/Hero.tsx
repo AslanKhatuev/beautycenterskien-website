@@ -27,7 +27,7 @@ export default function Hero() {
           href="/booking"
           className="inline-block bg-pink-600 hover:bg-pink-700 transition px-6 py-3 rounded text-lg font-semibold"
         >
-          Book time
+          Bestill time
         </Link>
       </div>
     </section>
