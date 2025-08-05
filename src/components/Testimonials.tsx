@@ -32,7 +32,7 @@ export default function Testimonials() {
           {testimonials.map((t, index) => (
             <div
               key={index}
-              className="bg-white rounded-lg shadow-md p-6 text-gray-700"
+              className="bg-white rounded-lg shadow-xl hover:shadow-2xl transition-shadow duration-300 p-6 text-gray-700"
             >
               <div className="flex mb-2">
                 {[...Array(t.rating)].map((_, i) => (
