@@ -6,12 +6,12 @@ import Image from "next/image";
 const services = [
   {
     title: "Hudpleie",
-    image: "/icons/skin-care.png",
+    image: "/hudpleie2.jpg",
     description: "Profesjonell hudpleie for glødende og sunn hud.",
   },
   {
     title: "Massasje",
-    image: "/icons/massage.png",
+    image: "/massasje.avif",
     description: "Avslappende og dyp massasje for kropp og sjel.",
   },
   {
@@ -29,20 +29,23 @@ export default function LandingServices() {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8">
           {services.map((service, index) => (
-            <div
+            <Link
               key={index}
+              href="/booking"
               className="bg-white rounded-xl shadow-md hover:shadow-xl transform hover:-translate-y-2 hover:bg-pink-50 transition duration-300 p-6 flex flex-col items-center text-center"
             >
-              <Image
-                src={service.image}
-                alt={service.title}
-                width={60}
-                height={60}
-                className="mb-4"
-              />
+              <div className="mb-4 w-32 h-32 relative">
+                <Image
+                  src={service.image}
+                  alt={service.title}
+                  layout="fill"
+                  objectFit="cover"
+                  className="rounded-full"
+                />
+              </div>
               <h3 className="text-xl font-semibold mb-2">{service.title}</h3>
               <p className="text-sm">{service.description}</p>
-            </div>
+            </Link>
           ))}
         </div>
 
@@ -50,7 +53,7 @@ export default function LandingServices() {
           href="/tjenester"
           className="inline-block mt-10 bg-pink-600 text-white px-6 py-3 rounded hover:bg-pink-700 transition"
         >
-          Se alle behandlinger
+          Se alle våre tjenester
         </Link>
       </div>
     </section>
