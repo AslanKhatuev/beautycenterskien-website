@@ -7,7 +7,7 @@ export default function Hero() {
   return (
     <section className="relative w-full h-[80vh] flex items-center justify-center bg-black overflow-hidden">
       <Image
-        src="/hero-massasje.jpg" // <-- bytt med ditt eget bilde i public/
+        src="/massasje.avif" // <-- bytt med ditt eget bilde i public/
         alt="Massasjebehandling"
         layout="fill"
         objectFit="cover"
