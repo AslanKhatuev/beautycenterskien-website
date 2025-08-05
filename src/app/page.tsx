@@ -3,6 +3,7 @@ import LandingServices from "@/components/LandingService";
 import OpeningHours from "@/components/OpeningHours";
 import Testimonials from "@/components/Testimonials";
 
+
 export default function HomePage() {
   return (
     <>
@@ -10,6 +11,7 @@ export default function HomePage() {
       <LandingServices />
       <OpeningHours />
       <Testimonials />
+      
     </>
   );
 }
