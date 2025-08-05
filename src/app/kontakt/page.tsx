@@ -24,8 +24,9 @@ export default function KontaktPage() {
     return re.test(email);
   };
 
+  // Kun 8-sifrede norske numre tillatt (f.eks. 96809506)
   const validateTelefon = (telefon: string) => {
-    const re = /^(\+47)?\s?\d{8}$/;
+    const re = /^\d{8}$/;
     return re.test(telefon);
   };
 
@@ -38,7 +39,7 @@ export default function KontaktPage() {
     }
 
     if (!validateTelefon(formData.telefon)) {
-      setError("Telefonnummer må være et gyldig norsk nummer.");
+      setError("Telefonnummer må være 8 siffer (f.eks. 96809506).");
       return;
     }
 
@@ -48,47 +49,60 @@ export default function KontaktPage() {
   };
 
   return (
-    <section className="max-w-3xl mx-auto px-4 py-10 sm:px-6 lg:px-8">
-      <h1 className="text-3xl sm:text-4xl font-bold mb-8 text-center">
+    <section className="max-w-3xl mx-auto px-4 py-16 sm:px-6 lg:px-8">
+      <h1 className="text-4xl font-extrabold text-center text-pink-600 mb-10">
         Kontakt oss
       </h1>
 
       {/* Kontaktinfo */}
-      <div className="mb-10 text-center space-y-2 text-gray-700 text-base sm:text-lg">
+      <div className="mb-12 text-center space-y-2 text-pink-600 text-lg">
         <p>
-          <strong>Adresse:</strong> Klostergata 12, 3732 Skien
+          <strong>Adresse:</strong> Bruene 1, 3725 Skien <br />
+          <span className="block sm:inline">
+            <strong>Lokasjon:</strong> Arkaden 4.etg
+          </span>
         </p>
         <p>
           <strong>Telefon:</strong>{" "}
-          <a href="tel:+4741234567" className="text-pink-600 hover:underline">
-            +47 412 34 567
+          <a
+            href="tel:+4796809506"
+            className="text-pink-600 hover:text-pink-400 hover:underline transition"
+          >
+            968 09 506
           </a>
         </p>
         <p>
           <strong>E-post:</strong>{" "}
           <a
-            href="mailto:kontakt@beautycenterskien.no"
-            className="text-pink-600 hover:underline"
+            href="mailto:massagevika24@gmail.com"
+            className="text-pink-600 hover:text-pink-400 hover:underline transition"
           >
-            kontakt@beautycenterskien.no
+            massagevika24@gmail.com
           </a>
         </p>
       </div>
 
       {/* Skjema */}
       {isSubmitted ? (
-        <p className="text-green-600 text-center text-lg">
-          Takk for din henvendelse!
+        <p className="text-green-600 text-center text-xl font-medium">
+          ✅ Takk for din henvendelse! Vi tar kontakt så snart vi kan.
         </p>
       ) : (
         <form
           onSubmit={handleSubmit}
-          className="space-y-5 bg-pink-50 p-6 shadow-md rounded-lg"
+          className="space-y-6 bg-white p-8 rounded-xl shadow-lg border border-pink-100"
         >
-          {error && <p className="text-red-600 text-sm">{error}</p>}
+          {error && (
+            <p className="text-red-600 text-sm font-medium text-center">
+              {error}
+            </p>
+          )}
 
           <div>
-            <label htmlFor="navn" className="block text-sm font-medium">
+            <label
+              htmlFor="navn"
+              className="block text-sm font-semibold text-gray-700"
+            >
               Navn
             </label>
             <input
@@ -98,12 +112,15 @@ export default function KontaktPage() {
               required
               value={formData.navn}
               onChange={handleChange}
-              className="w-full border border-gray-300 p-2 rounded mt-1"
+              className="w-full mt-2 border border-gray-300 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-400 transition"
             />
           </div>
 
           <div>
-            <label htmlFor="epost" className="block text-sm font-medium">
+            <label
+              htmlFor="epost"
+              className="block text-sm font-semibold text-gray-700"
+            >
               E-post
             </label>
             <input
@@ -113,12 +130,15 @@ export default function KontaktPage() {
               required
               value={formData.epost}
               onChange={handleChange}
-              className="w-full border border-gray-300 p-2 rounded mt-1"
+              className="w-full mt-2 border border-gray-300 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-400 transition"
             />
           </div>
 
           <div>
-            <label htmlFor="telefon" className="block text-sm font-medium">
+            <label
+              htmlFor="telefon"
+              className="block text-sm font-semibold text-gray-700"
+            >
               Telefonnummer
             </label>
             <input
@@ -128,13 +148,16 @@ export default function KontaktPage() {
               required
               value={formData.telefon}
               onChange={handleChange}
-              placeholder="f.eks. 41234567 eller +4741234567"
-              className="w-full border border-gray-300 p-2 rounded mt-1"
+              placeholder="f.eks. 96809506"
+              className="w-full mt-2 border border-gray-300 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-400 transition"
             />
           </div>
 
           <div>
-            <label htmlFor="melding" className="block text-sm font-medium">
+            <label
+              htmlFor="melding"
+              className="block text-sm font-semibold text-gray-700"
+            >
               Melding
             </label>
             <textarea
@@ -144,13 +167,13 @@ export default function KontaktPage() {
               value={formData.melding}
               onChange={handleChange}
               rows={5}
-              className="w-full border border-gray-300 p-2 rounded mt-1"
+              className="w-full mt-2 border border-gray-300 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-400 transition"
             ></textarea>
           </div>
 
           <button
             type="submit"
-            className="w-full bg-pink-600 text-white py-2 rounded hover:bg-pink-700 transition text-lg"
+            className="w-full bg-pink-600 hover:bg-pink-700 text-white py-3 rounded-lg font-semibold text-lg transition shadow-md hover:shadow-lg"
           >
             Send melding
           </button>
