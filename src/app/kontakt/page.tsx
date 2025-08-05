@@ -58,7 +58,7 @@ export default function KontaktPage() {
         <p>
           <strong>Adresse:</strong> Bruene 1, 3725 Skien <br />
           <span className="block sm:inline">
-            <strong>Lokasjon:</strong> Arkaden 4.etg
+            <strong>Lokasjon:</strong> Arkaden 4.etg (Legesenter)
           </span>
         </p>
         <p>
