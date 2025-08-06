@@ -34,7 +34,7 @@ export default function LandingServices() {
               href="/booking"
               className="bg-white rounded-xl shadow-md hover:shadow-xl transform hover:-translate-y-2 hover:bg-pink-50 transition duration-300 p-6 flex flex-col items-center text-center"
             >
-              <div className="mb-4 w-32 h-32 relative">
+              <div className="mb-4 w-[130px] h-[130px] relative">
                 <Image
                   src={service.image}
                   alt={service.title}
