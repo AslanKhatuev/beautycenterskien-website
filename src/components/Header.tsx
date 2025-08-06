@@ -1,4 +1,6 @@
 // components/Header.tsx
+"use client";
+
 import Link from "next/link";
 import Image from "next/image";
 import Navbar from "./Navbar";
@@ -14,6 +16,8 @@ export default function Header() {
             width={80}
             height={80}
             className="rounded-xl object-contain"
+            style={{ height: "auto" }} // <- Løser advarsel fra Next.js
+            priority // <- For raskere lasting av logo (valgfritt men anbefalt)
           />
         </Link>
         <Navbar />

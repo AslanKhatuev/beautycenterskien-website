@@ -14,6 +14,7 @@ export default function Footer() {
               alt="Logo"
               width={140}
               height={70}
+              style={{ height: "auto" }}
               className="rounded-xl shadow-md hover:scale-105 transition"
             />
           </Link>
@@ -108,6 +109,7 @@ export default function Footer() {
               alt="Skyline Interface Logo"
               width={140}
               height={70}
+              style={{ height: "auto" }}
               className="mx-auto rounded-xl shadow"
             />
           </a>

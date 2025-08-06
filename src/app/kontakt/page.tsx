@@ -24,9 +24,10 @@ export default function KontaktPage() {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    // Validering
     if (!validateEmail(formData.epost)) {
       setError("Ugyldig e-postadresse.");
       return;
@@ -42,9 +43,30 @@ export default function KontaktPage() {
       return;
     }
 
-    setError("");
-    setIsSubmitted(true);
-    console.log("Skjemadata:", formData);
+    try {
+      const res = await fetch("/api/contact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
+      });
+
+      if (res.ok) {
+        setError("");
+        setIsSubmitted(true);
+        setFormData({
+          navn: "",
+          epost: "",
+          telefon: "",
+          melding: "",
+        });
+      } else {
+        const message = await res.text();
+        setError(message || "Noe gikk galt. Prøv igjen senere.");
+      }
+    } catch (err) {
+      console.error("Feil ved sending:", err);
+      setError("Det oppsto en feil. Vennligst prøv igjen.");
+    }
   };
 
   return (
