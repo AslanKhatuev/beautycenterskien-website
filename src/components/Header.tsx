@@ -13,11 +13,10 @@ export default function Header() {
           <Image
             src="/beautycenter.jpg"
             alt="Massasjelogo"
-            width={80}
-            height={80}
-            className="rounded-xl object-contain"
-            style={{ height: "auto" }} // <- Løser advarsel fra Next.js
-            priority // <- For raskere lasting av logo (valgfritt men anbefalt)
+            width={140}
+            height={70} 
+            className="h-auto w-[140px] rounded-[10px]"
+            priority
           />
         </Link>
         <Navbar />
