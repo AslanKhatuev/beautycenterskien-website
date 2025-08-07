@@ -4,7 +4,7 @@ import Link from "next/link";
 
 export default function Hero() {
   return (
-    <section className="relative w-full h-[80vh] flex items-center justify-center bg-black overflow-hidden">
+    <section className="relative w-full h-screen flex items-center justify-center bg-black overflow-hidden">
       {/* Bakgrunnsvideo */}
       <video
         autoPlay
@@ -18,7 +18,7 @@ export default function Hero() {
       </video>
 
       {/* Tekstinnhold */}
-      <div className="relative z-10 text-center text-white px-4 sm:px-6 max-w-3xl">
+      <div className="relative z-10 w-full text-center text-white px-4 sm:px-6 max-w-5xl mx-auto">
         <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold leading-tight mb-6 drop-shadow-lg">
           <span className="block bg-clip-text text-transparent bg-gradient-to-r from-white via-pink-300 to-white">
             Velkommen til Beauty Center

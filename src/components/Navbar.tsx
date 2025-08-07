@@ -10,6 +10,7 @@ const navLinks = [
   { label: "Tjenester", href: "/tjenester" },
   { label: "Bestill time", href: "/booking" },
   { label: "Kontakt", href: "/kontakt" },
+  
 ];
 
 const Navbar = () => {
