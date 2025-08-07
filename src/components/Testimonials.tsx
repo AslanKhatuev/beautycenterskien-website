@@ -25,7 +25,7 @@ export default function Testimonials() {
     <section className="py-16 bg-pink-50">
       <div className="max-w-4xl mx-auto px-4">
         <h2 className="text-3xl font-bold text-center text-black mb-10">
-          Kundeanmeldelser
+          Ro i sjelen – fra våre kunder
         </h2>
 
         <div className="grid gap-8 md:grid-cols-3">
