@@ -5,7 +5,7 @@ import Footer from "@/components/Footer";
 
 export const metadata = {
   title: "Beauty Center Skien",
-  description: "Velkommen til din lokale massasjesalong",
+  description: "Velkommen til Beauty Center Skien",
 };
 
 export default function RootLayout({
@@ -15,6 +15,12 @@ export default function RootLayout({
 }) {
   return (
     <html lang="no">
+      <head>
+        <link rel="icon" href="/beauty.png" type="image/x-icon" />
+        {/* Du kan også bruke .png eller .svg hvis du har det */}
+        <title>Beauty Center Skien</title>
+        <meta name="description" content="Velkommen til Beauty Center Skien" />
+      </head>
       <body className="min-h-screen flex flex-col">
         <Header />
         <main className="flex-grow container mx-auto p-4">{children}</main>
