@@ -31,7 +31,7 @@ export default function AboutPage() {
               <span role="img" aria-label="massasje">
                 
               </span>{" "}
-              <strong className="text-white">Viktoria</strong> – utdannet
+              <strong className="text-white">Viktoriia</strong> – utdannet
               massasjeterapeut med erfaring og intuisjon. Hendene mine vet hvor
               det gjør vondt, hvor trettheten sitter, og hvor spenningene har
               samlet seg – og hvordan man løser det. Jeg spesialiserer meg på
@@ -55,7 +55,7 @@ export default function AboutPage() {
               <span role="img" aria-label="kosmetolog">
                 
               </span>{" "}
-              <strong className="text-white">Natalia</strong> – kosmetolog med
+              <strong className="text-white">Nataliia</strong> – kosmetolog med
               magiske hender og et varmt hjerte. Over 20 år i yrket og tusenvis
               av takknemlige kunder. Jeg jobber med huden skånsomt, bevisst og
               effektivt. Rens, pleie, løft, anti-aldringsprosedyrer – alt

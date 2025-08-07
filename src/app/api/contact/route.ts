@@ -19,7 +19,7 @@ export async function POST(req: Request) {
 
   const mailOptions = {
     from: `"Nettside henvendelse" <${process.env.EMAIL_USER}>`,
-    to: "aslan.khatujev@gmail.com",
+    to: "massagevika24@gmail.com",
     subject: "Ny melding fra kontaktskjema",
     html: `
       <h2>Ny melding fra nettsiden</h2>
