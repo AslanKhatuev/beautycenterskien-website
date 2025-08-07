@@ -27,7 +27,6 @@ export default function KontaktPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Validering
     if (!validateEmail(formData.epost)) {
       setError("Ugyldig e-postadresse.");
       return;
@@ -76,18 +75,18 @@ export default function KontaktPage() {
       </h1>
 
       {/* Kontaktinfo */}
-      <div className="mb-12 text-center space-y-2 text-pink-600 text-lg">
-        <p>
+      <div className="mb-12 bg-gray-100 rounded-lg p-6 text-gray-800 text-lg leading-relaxed font-medium shadow-md">
+        <p className="mb-4">
           <strong>Adresse:</strong> Bruene 1, 3725 Skien <br />
           <span className="block sm:inline">
             <strong>Lokasjon:</strong> Arkaden 4.etg (Legesenter)
           </span>
         </p>
-        <p>
+        <p className="mb-2">
           <strong>Telefon:</strong>{" "}
           <a
             href="tel:+4796809506"
-            className="text-pink-600 hover:text-pink-400 hover:underline transition"
+            className="text-pink-600 hover:text-pink-500 hover:underline transition"
           >
             968 09 506
           </a>
@@ -96,7 +95,7 @@ export default function KontaktPage() {
           <strong>E-post:</strong>{" "}
           <a
             href="mailto:massagevika24@gmail.com"
-            className="text-pink-600 hover:text-pink-400 hover:underline transition"
+            className="text-pink-600 hover:text-pink-500 hover:underline transition"
           >
             massagevika24@gmail.com
           </a>
