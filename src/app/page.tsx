@@ -10,8 +10,8 @@ export default function HomePage() {
     <>
       <Hero />
       <IntroSection />
-      <LandingServices />
       <OpeningHours />
+      <LandingServices />
       <Testimonials />
     </>
   );
