@@ -42,7 +42,7 @@ export default function AvailableTimes({
       </h2>
 
       {timeSlots.length === 0 ? (
-        <p className="text-white text-center">Ingen ledige tider på søndag.</p>
+        <p className="text-white text-center">Vi er stengt på søndag.</p>
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 justify-items-center">
           {timeSlots.map((time: string) => (
