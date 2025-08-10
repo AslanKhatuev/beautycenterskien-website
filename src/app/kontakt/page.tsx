@@ -5,7 +5,7 @@ import {
   validateEmail,
   validateTelefon,
   validateMelding,
-} from "@/utils/contactValidation";
+} from "../../utils/contactValidation";
 
 export default function KontaktPage() {
   const [formData, setFormData] = useState({

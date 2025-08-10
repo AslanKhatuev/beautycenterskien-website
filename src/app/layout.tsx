@@ -1,7 +1,7 @@
 // app/layout.tsx
 import "./globals.css";
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
+import Header from "../components/Header";
+import Footer from "../components/Footer";
 
 export const metadata = {
   title: "Beauty Center Skien",

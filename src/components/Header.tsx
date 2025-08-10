@@ -13,9 +13,9 @@ export default function Header() {
           <Image
             src="/beautycenter.jpg"
             alt="Massasjelogo"
-            width={140}
-            height={70} 
-            className="h-auto w-[140px] rounded-[10px]"
+            width={50}
+            height={50}
+            className="h-auto w-[100px] rounded-[8px]"
             priority
           />
         </Link>

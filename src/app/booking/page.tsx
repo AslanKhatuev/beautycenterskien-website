@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import Calendar from "@/components/Calendar";
-import AvailableTimes from "@/components/AvailableTime";
-import BookingForm from "@/components/BookingForm";
+import Calendar from "../../components/Calendar";
+import AvailableTimes from "../../components/AvailableTime";
+import BookingForm from "../../components/BookingForm";
 
 export default function BookingPage() {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
