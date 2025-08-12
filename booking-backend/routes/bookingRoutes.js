@@ -1,3 +1,4 @@
+// routes/bookingRoutes.js
 import { Router } from "express";
 import {
   postBooking,
@@ -9,7 +10,7 @@ const router = Router();
 // Hent opptatte tider for dato
 router.get("/unavailable", getUnavailableTimes);
 
-// Lagre booking + send e-post
+// Lagre booking
 router.post("/book", postBooking);
 
 export default router;

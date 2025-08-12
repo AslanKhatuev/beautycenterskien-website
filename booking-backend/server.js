@@ -1,7 +1,8 @@
+// server.js
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
-import bookingRoutes from "./routes/bookingRoutes.js"; // <- viktig med .js
+import bookingRoutes from "./routes/bookingRoutes.js";
 
 dotenv.config();
 

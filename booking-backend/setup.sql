@@ -1,12 +1,16 @@
-CREATE DATABASE IF NOT EXISTS bookingdb;
+CREATE DATABASE IF NOT EXISTS bookingdb
+  DEFAULT CHARACTER SET utf8mb4
+  DEFAULT COLLATE utf8mb4_unicode_ci;
+
 USE bookingdb;
+
 CREATE TABLE IF NOT EXISTS bookings (
   id INT AUTO_INCREMENT PRIMARY KEY,
   name VARCHAR(100) NOT NULL,
   email VARCHAR(100) NOT NULL,
   phone VARCHAR(20) NOT NULL,
-  date DATE NOT NULL,
-  time VARCHAR(10) NOT NULL,
+  `date` DATE NOT NULL,
+  `time` TIME NOT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  UNIQUE KEY unique_booking (date, time)
+  UNIQUE KEY unique_booking (`date`, `time`)
 );
