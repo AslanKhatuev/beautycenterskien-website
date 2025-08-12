@@ -17,9 +17,21 @@ const SERVICE_GROUPS: ServiceGroup[] = [
       { id: "klassisk-massasje", name: "Klassisk massasje", price: 750 },
       { id: "terapeutisk-massasje", name: "Terapeutisk massasje", price: 850 },
       { id: "sportsmassasje", name: "Sportsmassasje", price: 800 },
-      { id: "lymfedrenasje-massasje", name: "Lymfedrenasje massasje", price: 900 },
-      { id: "anti-cellulitt-massasje", name: "Anti-cellulitt massasje", price: 1000 },
-      { id: "ansikt-hals-dekollete", name: "Ansikt-, hals- og dekolletémassasje", price: 650 },
+      {
+        id: "lymfedrenasje-massasje",
+        name: "Lymfedrenasje massasje",
+        price: 900,
+      },
+      {
+        id: "anti-cellulitt-massasje",
+        name: "Anti-cellulitt massasje",
+        price: 1000,
+      },
+      {
+        id: "ansikt-hals-dekollete",
+        name: "Ansikt-, hals- og dekolletémassasje",
+        price: 650,
+      },
       { id: "handmassasje", name: "Håndmassasje med omsorg", price: 550 },
       { id: "fotmassasje", name: "Fotmassasje med omsorg", price: 550 },
     ],
@@ -27,24 +39,68 @@ const SERVICE_GROUPS: ServiceGroup[] = [
   {
     group: "Kosmetologi & apparatbehandlinger",
     items: [
-      { id: "kavitasjon-1-omrade", name: "Kavitasjon (ultralyd), 1 område", price: 1000 },
-      { id: "rf-loft-1-omrade", name: "RF Løft (radiofrekvens), 1 område", price: 1000 },
-      { id: "vakuummassasje-hel-kropp", name: "Vakuummassasje – Hele kroppen", price: 1000 },
-      { id: "vakuummassasje-rf-hel-kropp", name: "Vakuummassasje med RF – Hele kroppen", price: 1200 },
+      {
+        id: "kavitasjon-1-omrade",
+        name: "Kavitasjon (ultralyd), 1 område",
+        price: 1000,
+      },
+      {
+        id: "rf-loft-1-omrade",
+        name: "RF Løft (radiofrekvens), 1 område",
+        price: 1000,
+      },
+      {
+        id: "vakuummassasje-hel-kropp",
+        name: "Vakuummassasje – Hele kroppen",
+        price: 1000,
+      },
+      {
+        id: "vakuummassasje-rf-hel-kropp",
+        name: "Vakuummassasje med RF – Hele kroppen",
+        price: 1200,
+      },
     ],
   },
   {
     group: "Hudpleie og andre behandlinger",
     items: [
       { id: "ansiktsrens", name: "Ansiktsrens", price: 1000 },
-      { id: "peeling-biorevitalisering", name: "Peeling + biorevitaliserende middel", price: 1200 },
-      { id: "peeling-mesokocktail", name: "Peeling + mesokocktail", price: 1500 },
-      { id: "fraksjonell-mesoterapi", name: "Fraksjonell mesoterapi", price: 1700 },
-      { id: "hudpleie-ansikt-hals-dekolletasje-hender", name: "Hudpleie for ansikt, hals, dekolletasje og hender", price: 1200 },
-      { id: "apparatkosmetologi-rf", name: "Apparatkosmetologi (RF-løfting)", price: 1000 },
-      { id: "kavitasjon-fett", name: "Kavitasjon (fjerning av fettansamlinger)", price: 1000 },
+      {
+        id: "peeling-biorevitalisering",
+        name: "Peeling + biorevitaliserende middel",
+        price: 1200,
+      },
+      {
+        id: "peeling-mesokocktail",
+        name: "Peeling + mesokocktail",
+        price: 1500,
+      },
+      {
+        id: "fraksjonell-mesoterapi",
+        name: "Fraksjonell mesoterapi",
+        price: 1700,
+      },
+      {
+        id: "hudpleie-ansikt-hals-dekolletasje-hender",
+        name: "Hudpleie for ansikt, hals, dekolletasje og hender",
+        price: 1200,
+      },
+      {
+        id: "apparatkosmetologi-rf",
+        name: "Apparatkosmetologi (RF-løfting)",
+        price: 1000,
+      },
+      {
+        id: "kavitasjon-fett",
+        name: "Kavitasjon (fjerning av fettansamlinger)",
+        price: 1000,
+      },
       { id: "mikrostrom-serum", name: "Mikrostrømterapi + serum", price: 1300 },
-      { id: "harhodebunn-behandling", name: "Behandling mot hårtap/flass/fet hodebunn", price: 1000 },
+      {
+        id: "harhodebunn-behandling",
+        name: "Behandling mot hårtap/flass/fet hodebunn",
+        price: 1000,
+      },
       { id: "konsultasjon-20", name: "Konsultasjon (20 min)", price: 300 },
     ],
   },
@@ -85,15 +141,20 @@ export default function BookingForm({ date, time }: Props) {
 
     setSubmitting(true);
     try {
+      // Her kan du eventuelt kalle backend (postBooking)
       alert(
         `Bestilling sendt!\n\nNavn: ${formData.name}\nBehandling: ${
           selectedService?.name
-        } (${selectedService?.price} NOK)\nTid: ${time}\nDato: ${date.toLocaleDateString(
-          "no-NO"
-        )}`
+        } (${
+          selectedService?.price
+        } NOK)\nTid: ${time}\nDato: ${date.toLocaleDateString("no-NO")}`
       );
-    } catch (err: any) {
-      alert(err?.message || "Kunne ikke fullføre booking");
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        alert(err.message);
+      } else {
+        alert("Kunne ikke fullføre booking");
+      }
     } finally {
       setSubmitting(false);
     }
@@ -133,7 +194,8 @@ export default function BookingForm({ date, time }: Props) {
         </select>
         {selectedService && (
           <p className="text-sm text-gray-800 mt-1">
-            Pris: <span className="font-medium">{selectedService.price} NOK</span>
+            Pris:{" "}
+            <span className="font-medium">{selectedService.price} NOK</span>
           </p>
         )}
       </div>
