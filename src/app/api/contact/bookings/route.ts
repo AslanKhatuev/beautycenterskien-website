@@ -5,6 +5,19 @@ import { sendBookingConfirmation } from "@/lib/email";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+// Interface for Prisma errors
+interface PrismaError extends Error {
+  code: string;
+}
+
+function isPrismaError(error: unknown): error is PrismaError {
+  return (
+    error instanceof Error &&
+    "code" in error &&
+    typeof (error as { code: string }).code === "string"
+  );
+}
+
 // GET /api/contact/bookings?date=YYYY-MM-DD
 export async function GET(req: NextRequest) {
   console.log("API route called");
@@ -154,7 +167,7 @@ export async function POST(req: NextRequest) {
       message: "Booking opprettet og e-post sendt",
     });
   } catch (err: unknown) {
-    if (err && typeof err === 'object' && 'code' in err && err.code === "P2002") {
+    if (isPrismaError(err) && err.code === "P2002") {
       return NextResponse.json(
         { error: "Tiden er allerede booket." },
         { status: 409 }
