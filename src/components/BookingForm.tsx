@@ -5,6 +5,12 @@ import { useMemo, useState } from "react";
 interface Props {
   date: Date;
   time: string;
+  onBookingSuccess?: (details: {
+    serviceName: string;
+    date: Date;
+    time: string;
+    price: number;
+  }) => void;
 }
 
 type ServiceItem = { id: string; name: string; price: number };
@@ -106,7 +112,7 @@ const SERVICE_GROUPS: ServiceGroup[] = [
   },
 ];
 
-export default function BookingForm({ date, time }: Props) {
+export default function BookingForm({ date, time, onBookingSuccess }: Props) {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -114,6 +120,7 @@ export default function BookingForm({ date, time }: Props) {
     serviceId: "",
   });
   const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const allServices = useMemo<ServiceItem[]>(
     () => SERVICE_GROUPS.flatMap((g) => g.items),
@@ -129,32 +136,81 @@ export default function BookingForm({ date, time }: Props) {
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
+    if (error) setError(null);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null);
 
-    if (!formData.serviceId) {
-      alert("Velg behandling før du fortsetter.");
+    if (!selectedService) {
+      setError("Velg behandling før du fortsetter.");
+      return;
+    }
+
+    // Validate Norwegian phone number (8 digits)
+    if (!/^\d{8}$/.test(formData.phone)) {
+      setError("Telefonnummer må være 8 siffer.");
       return;
     }
 
     setSubmitting(true);
+
     try {
-      // Her kan du eventuelt kalle backend (postBooking)
-      alert(
-        `Bestilling sendt!\n\nNavn: ${formData.name}\nBehandling: ${
-          selectedService?.name
-        } (${
-          selectedService?.price
-        } NOK)\nTid: ${time}\nDato: ${date.toLocaleDateString("no-NO")}`
-      );
-    } catch (err: unknown) {
-      if (err instanceof Error) {
-        alert(err.message);
-      } else {
-        alert("Kunne ikke fullføre booking");
+      console.log("Sending booking request...");
+
+      const response = await fetch("/api/contact/bookings", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: formData.name.trim(),
+          email: formData.email.trim().toLowerCase(),
+          phone: formData.phone.trim(),
+          serviceId: formData.serviceId,
+          serviceName: selectedService.name,
+          price: selectedService.price,
+          date: date.toISOString().slice(0, 10),
+          time,
+        }),
+      });
+
+      console.log("Response status:", response.status);
+
+      const data = await response.json();
+      console.log("Response data:", data);
+
+      if (response.status === 409) {
+        setError(
+          "Beklager, tiden ble nettopp booket av noen andre. Velg en annen tid."
+        );
+        return;
       }
+
+      if (!response.ok) {
+        throw new Error(data?.error || "Kunne ikke fullføre booking");
+      }
+
+      // Success - kall parent med detaljer!
+      console.log("🎉 Booking successful! Calling parent...");
+
+      // Call callback to show modal in parent
+      if (onBookingSuccess) {
+        onBookingSuccess({
+          serviceName: selectedService.name,
+          date: date,
+          time: time,
+          price: selectedService.price,
+        });
+      }
+
+      setFormData({ name: "", email: "", phone: "", serviceId: "" });
+    } catch (err) {
+      console.error("Booking error:", err);
+      const errorMessage =
+        err instanceof Error ? err.message : "En ukjent feil oppstod";
+      setError(errorMessage);
     } finally {
       setSubmitting(false);
     }
@@ -167,17 +223,23 @@ export default function BookingForm({ date, time }: Props) {
     >
       <h3 className="text-xl font-bold text-black">Fyll ut din informasjon</h3>
 
+      {error && (
+        <div className="p-3 bg-red-50 border border-red-200 rounded text-red-700">
+          {error}
+        </div>
+      )}
+
       {/* Behandling */}
       <div>
         <label className="block text-sm font-medium text-gray-900 mb-1">
-          Velg behandling
+          Velg behandling *
         </label>
         <select
           name="serviceId"
           required
           value={formData.serviceId}
           onChange={handleChange}
-          className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-pink-400 text-black placeholder-gray-400"
+          className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-pink-400 text-black"
         >
           <option value="" disabled>
             — Velg behandling —
@@ -203,63 +265,74 @@ export default function BookingForm({ date, time }: Props) {
       {/* Navn */}
       <div>
         <label className="block text-sm font-medium text-gray-900 mb-1">
-          Fullt navn
+          Fullt navn *
         </label>
         <input
           type="text"
           name="name"
-          placeholder="Navn"
+          placeholder="Ola Nordmann"
           value={formData.name}
           onChange={handleChange}
           required
-          className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-pink-400 text-black placeholder-gray-400"
+          maxLength={100}
+          className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-pink-400 text-black"
         />
       </div>
 
       {/* E-post */}
       <div>
         <label className="block text-sm font-medium text-gray-900 mb-1">
-          E-post
+          E-post *
         </label>
         <input
           type="email"
           name="email"
-          placeholder="din@epost.no"
+          placeholder="ola@example.com"
           value={formData.email}
           onChange={handleChange}
           required
-          className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-pink-400 text-black placeholder-gray-400"
+          maxLength={100}
+          className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-pink-400 text-black"
         />
       </div>
 
       {/* Telefon */}
       <div>
         <label className="block text-sm font-medium text-gray-900 mb-1">
-          Telefon (8 siffer)
+          Telefon (8 siffer) *
         </label>
         <input
           type="tel"
           name="phone"
-          placeholder="96809506"
+          placeholder="12345678"
           pattern="^\d{8}$"
           title="Skriv inn et gyldig norsk telefonnummer (8 siffer)"
           value={formData.phone}
           onChange={handleChange}
           required
-          className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-pink-400 text-black placeholder-gray-400"
+          maxLength={8}
+          className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-pink-400 text-black"
         />
+        <p className="text-xs text-gray-600 mt-1">
+          Kun norske telefonnummer (8 siffer)
+        </p>
       </div>
 
       <button
         type="submit"
         disabled={submitting}
-        className="w-full bg-pink-600 text-white py-2 rounded hover:bg-pink-700 transition duration-200 disabled:opacity-60"
+        className="w-full bg-pink-600 text-white py-3 rounded hover:bg-pink-700 transition duration-200 disabled:opacity-60 disabled:cursor-not-allowed font-medium"
       >
-        {submitting
-          ? "Sender…"
-          : `Book ${
-              selectedService ? selectedService.name + " – " : ""
-            }${time} – ${date.toLocaleDateString("no-NO")}`}
+        {submitting ? (
+          <span className="flex items-center justify-center">
+            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+            Sender...
+          </span>
+        ) : (
+          `Book ${
+            selectedService ? selectedService.name + " – " : ""
+          }${time} – ${date.toLocaleDateString("no-NO")}`
+        )}
       </button>
     </form>
   );

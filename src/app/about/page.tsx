@@ -18,7 +18,7 @@ export default function AboutPage() {
             skjønnhet.
           </p>
 
-          {/* Viktoria */}
+          {/* Viktoriia */}
           <div className="flex flex-col md:flex-row items-center gap-8">
             <Image
               src="/vika.jpg"
@@ -42,7 +42,7 @@ export default function AboutPage() {
             </p>
           </div>
 
-          {/* Natalia */}
+          {/* Nataliia */}
           <div className="flex flex-col md:flex-row items-center gap-8">
             <Image
               src="/mama.jpg"

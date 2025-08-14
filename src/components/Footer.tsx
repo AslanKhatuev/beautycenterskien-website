@@ -109,8 +109,7 @@ export default function Footer() {
               alt="Skyline Interface Logo"
               width={160}
               height={80}
-              style={{ height: "auto" }}
-              className="mx-auto rounded-xl shadow"
+              className="mx-auto rounded shadow"
             />
           </a>
         </div>
