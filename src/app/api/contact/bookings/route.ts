@@ -153,8 +153,8 @@ export async function POST(req: NextRequest) {
       bookingId: booking.id,
       message: "Booking opprettet og e-post sendt",
     });
-  } catch (err: any) {
-    if (err?.code === "P2002") {
+  } catch (err: unknown) {
+    if (err && typeof err === 'object' && 'code' in err && err.code === "P2002") {
       return NextResponse.json(
         { error: "Tiden er allerede booket." },
         { status: 409 }
