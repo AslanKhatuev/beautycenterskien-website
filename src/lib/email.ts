@@ -81,7 +81,7 @@ export async function sendBookingConfirmation(booking: BookingEmailData) {
       
       <p>Har du spørsmål? Kontakt oss på:</p>
       <p>📧 ${process.env.EMAIL_FROM}<br/>
-      📱 Ring oss for spørsmål +47 968 09 506</p>
+      📱 +47 968 09 506</p>
       
       <p>Vi gleder oss til å se deg!</p>
       
