@@ -1,7 +1,5 @@
 # Beauty Center Skien
 
-## Features
-
 ## Frontend
 
 Responsive design - Optimized for desktop, tablet, and mobile
@@ -33,6 +31,49 @@ Data security - Input validation and sanitization
 - SQLite + Prisma (Database & ORM)
 - Nodemailer (Email service)
 - React DatePicker (Calendar component)
+
+## Security
+
+Input Validation:
+
+Zod schema validation on both frontend and backend
+Type-safe input handling with TypeScript
+Data sanitization (removes dangerous characters and extra whitespace)
+Regex validation for phone numbers and names
+Email format validation
+
+Rate Limiting:
+
+Booking API: 3 attempts per 10 minutes per IP address
+Contact API: 5 messages per hour per IP address
+Upstash Redis backend for distributed rate limiting
+Sliding window algorithm for fair limitation
+
+Date/Time Security:
+
+Past date validation: Cannot book dates/times in the past
+15-minute buffer: Cannot book appointments starting in less than 15 minutes
+Visual feedback: Past times shown grayed out and disabled
+
+Anti-Spam Protection:
+
+Automatic spam filter that blocks URLs and spam keywords
+IP logging for security tracking
+Content analysis of messages and subjects
+
+Database Security:
+
+Prisma ORM prevents SQL injection
+PostgreSQL in production (Neon database)
+Connection string secured via environment variables
+Unique constraints on booking times to prevent double-booking
+
+API Security:
+
+Error handling without exposing system details
+CORS configuration via Next.js
+HTTP-only communication with HTTPS in production
+Structured error messages that don't reveal system information
 
 ## Getting Started
 

@@ -1,4 +1,3 @@
-// Oppdater src/components/AvailableTime.tsx
 "use client";
 
 import { useEffect, useState } from "react";
@@ -7,16 +6,52 @@ interface AvailableTimesProps {
   date: Date;
   selectedTime: string | null;
   onSelectTime: (time: string) => void;
+  onError?: (message: string) => void; // Ny prop for feilhåndtering
 }
 
 export default function AvailableTimes({
   date,
   selectedTime,
   onSelectTime,
+  onError,
 }: AvailableTimesProps) {
   const [availableTimes, setAvailableTimes] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Funksjon for å sjekke om en tid har passert (kun for dagens dato)
+  const isTimePassed = (timeString: string) => {
+    const today = new Date();
+    const selectedDate = new Date(date);
+
+    // Sjekk kun hvis det er dagens dato
+    if (selectedDate.toDateString() !== today.toDateString()) {
+      return false; // Fremtidige datoer er alltid OK
+    }
+
+    const [hours, minutes] = timeString.split(":").map(Number);
+    const timeToCheck = new Date();
+    timeToCheck.setHours(hours, minutes, 0, 0);
+
+    // Legg til 15 minutter buffer for å unngå booking av tid som starter nå
+    const currentTimeWithBuffer = new Date();
+    currentTimeWithBuffer.setMinutes(currentTimeWithBuffer.getMinutes() + 15);
+
+    return timeToCheck <= currentTimeWithBuffer;
+  };
+
+  const handleTimeSelect = (time: string) => {
+    // Sjekk om tiden har passert
+    if (isTimePassed(time)) {
+      if (onError) {
+        onError("Kan ikke booke tid som allerede har passert.");
+      }
+      return;
+    }
+
+    // Tid er gyldig, velg den
+    onSelectTime(time);
+  };
 
   useEffect(() => {
     const fetchAvailableTimes = async () => {
@@ -101,20 +136,31 @@ export default function AvailableTimes({
         </p>
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 justify-items-center">
-          {availableTimes.map((time) => (
-            <button
-              key={time}
-              onClick={() => onSelectTime(time)}
-              type="button"
-              className={`w-28 sm:w-32 px-4 py-2 rounded-full text-sm font-medium border text-center transition-colors duration-200 ${
-                selectedTime === time
-                  ? "bg-pink-600 text-white border-pink-600"
-                  : "bg-white border-gray-300 text-gray-700 hover:bg-pink-100 hover:border-pink-300"
-              }`}
-            >
-              {time}
-            </button>
-          ))}
+          {availableTimes.map((time) => {
+            const isPast = isTimePassed(time);
+            const isSelected = selectedTime === time;
+
+            return (
+              <button
+                key={time}
+                onClick={() => handleTimeSelect(time)}
+                type="button"
+                disabled={isPast}
+                className={`w-28 sm:w-32 px-4 py-2 rounded-full text-sm font-medium border text-center transition-colors duration-200 ${
+                  isPast
+                    ? "bg-gray-200 border-gray-300 text-gray-400 cursor-not-allowed"
+                    : isSelected
+                    ? "bg-pink-600 text-white border-pink-600"
+                    : "bg-white border-gray-300 text-gray-700 hover:bg-pink-100 hover:border-pink-300"
+                }`}
+              >
+                {time}
+                {isPast && (
+                  <span className="block text-xs text-gray-400">Passert</span>
+                )}
+              </button>
+            );
+          })}
         </div>
       )}
     </div>

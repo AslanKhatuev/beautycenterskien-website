@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { z } from "zod"; // ← Legg til denne importen
 
 interface Props {
   date: Date;
@@ -15,6 +16,24 @@ interface Props {
 
 type ServiceItem = { id: string; name: string; price: number };
 type ServiceGroup = { group: string; items: ServiceItem[] };
+
+// Frontend validering schema (samme som backend)
+const frontendValidationSchema = z.object({
+  name: z
+    .string()
+    .min(2, "Navn må være minst 2 tegn")
+    .max(100, "Navn kan ikke være lengre enn 100 tegn")
+    .regex(/^[a-zA-ZæøåÆØÅ\s\-\.]+$/, "Navn kan kun inneholde bokstaver"),
+
+  email: z
+    .string()
+    .email("Ugyldig e-postadresse")
+    .max(100, "E-post kan ikke være lengre enn 100 tegn"),
+
+  phone: z.string().regex(/^\d{8}$/, "Telefonnummer må være nøyaktig 8 siffer"),
+
+  serviceId: z.string().min(1, "Velg en behandling"),
+});
 
 const SERVICE_GROUPS: ServiceGroup[] = [
   {
@@ -143,15 +162,47 @@ export default function BookingForm({ date, time, onBookingSuccess }: Props) {
     e.preventDefault();
     setError(null);
 
+    // Frontend validering med Zod
+    const validationResult = frontendValidationSchema.safeParse({
+      name: formData.name.trim(),
+      email: formData.email.trim(),
+      phone: formData.phone.trim(),
+      serviceId: formData.serviceId,
+    });
+
+    if (!validationResult.success) {
+      const firstError = validationResult.error.issues[0];
+      setError(firstError.message);
+      return;
+    }
+
     if (!selectedService) {
       setError("Velg behandling før du fortsetter.");
       return;
     }
 
-    // Validate Norwegian phone number (8 digits)
-    if (!/^\d{8}$/.test(formData.phone)) {
-      setError("Telefonnummer må være 8 siffer.");
+    // Sjekk at dato ikke er i fortiden
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const selectedDate = new Date(date);
+    selectedDate.setHours(0, 0, 0, 0);
+
+    if (selectedDate < today) {
+      setError("Kan ikke booke tid i fortiden.");
       return;
+    }
+
+    // Sjekk at tid ikke er i fortiden hvis det er i dag
+    if (selectedDate.getTime() === today.getTime()) {
+      const now = new Date();
+      const [hours, minutes] = time.split(":").map(Number);
+      const selectedDateTime = new Date();
+      selectedDateTime.setHours(hours, minutes, 0, 0);
+
+      if (selectedDateTime <= now) {
+        setError("Kan ikke booke tid som allerede har passert i dag.");
+        return;
+      }
     }
 
     setSubmitting(true);
@@ -188,8 +239,27 @@ export default function BookingForm({ date, time, onBookingSuccess }: Props) {
         return;
       }
 
+      if (response.status === 429) {
+        const data = await response.json();
+        const retryAfter = data.retryAfter || 600; // Default 10 minutter
+        const minutes = Math.ceil(retryAfter / 60);
+        setError(
+          `For mange booking-forsøk. Prøv igjen om ${minutes} minutter.`
+        );
+        return;
+      }
+
       if (!response.ok) {
-        throw new Error(data?.error || "Kunne ikke fullføre booking");
+        // Vis detaljerte feilmeldinger fra backend
+        if (data.details && Array.isArray(data.details)) {
+          const errorMessages = data.details
+            .map((detail: any) => detail.message)
+            .join(", ");
+          setError(errorMessages);
+        } else {
+          setError(data?.error || "Kunne ikke fullføre booking");
+        }
+        return;
       }
 
       // Success - kall parent med detaljer!

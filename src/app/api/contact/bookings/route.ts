@@ -1,9 +1,49 @@
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import prisma from "@/lib/prisma";
 import { sendBookingConfirmation } from "@/lib/email";
+import { bookingRateLimit } from "@/lib/ratelimit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+
+// Zod schema for validering
+const bookingSchema = z.object({
+  name: z
+    .string()
+    .min(2, "Navn må være minst 2 tegn")
+    .max(100, "Navn kan ikke være lengre enn 100 tegn")
+    .regex(
+      /^[a-zA-ZæøåÆØÅ\s\-\.]+$/,
+      "Navn kan kun inneholde bokstaver, mellomrom, bindestrek og punktum"
+    ),
+
+  email: z
+    .string()
+    .email("Ugyldig e-postadresse")
+    .max(100, "E-post kan ikke være lengre enn 100 tegn")
+    .toLowerCase(),
+
+  phone: z.string().regex(/^\d{8}$/, "Telefonnummer må være nøyaktig 8 siffer"),
+
+  serviceId: z.string().min(1, "Tjeneste må velges"),
+
+  serviceName: z
+    .string()
+    .min(1, "Tjenestenavn er påkrevd")
+    .max(200, "Tjenestenavn kan ikke være lengre enn 200 tegn"),
+
+  price: z
+    .number()
+    .positive("Pris må være positiv")
+    .max(10000, "Pris kan ikke være høyere enn 10000 NOK"),
+
+  date: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, "Dato må være i formatet YYYY-MM-DD"),
+
+  time: z.string().regex(/^\d{2}:\d{2}$/, "Tid må være i formatet HH:MM"),
+});
 
 // Interface for Prisma errors
 interface PrismaError extends Error {
@@ -27,6 +67,12 @@ export async function GET(req: NextRequest) {
 
   if (!dateParam) {
     return NextResponse.json({ error: "Missing date" }, { status: 400 });
+  }
+
+  // Valider dato format
+  const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+  if (!dateRegex.test(dateParam)) {
+    return NextResponse.json({ error: "Invalid date format" }, { status: 400 });
   }
 
   const dayStart = new Date(`${dateParam}T00:00:00`);
@@ -105,29 +151,91 @@ function toStartAtISO(dateStr: string, timeStr: string) {
 
 export async function POST(req: NextRequest) {
   try {
-    const { name, email, phone, serviceId, serviceName, price, date, time } =
-      await req.json();
+    // Rate limiting - hent IP adresse fra headers
+    const forwarded = req.headers.get("x-forwarded-for");
+    const ip = forwarded
+      ? forwarded.split(",")[0]
+      : req.headers.get("x-real-ip") || "127.0.0.1";
 
-    if (
-      !name ||
-      !email ||
-      !phone ||
-      !serviceId ||
-      !serviceName ||
-      !price ||
-      !date ||
-      !time
-    ) {
-      return NextResponse.json({ error: "Mangler felt" }, { status: 400 });
+    const { success, limit, reset, remaining } = await bookingRateLimit.limit(
+      ip
+    );
+
+    if (!success) {
+      return NextResponse.json(
+        {
+          error: "For mange booking-forsøk. Prøv igjen senere.",
+          retryAfter: Math.round((reset - Date.now()) / 1000),
+        },
+        {
+          status: 429,
+          headers: {
+            "X-RateLimit-Limit": limit.toString(),
+            "X-RateLimit-Remaining": remaining.toString(),
+            "X-RateLimit-Reset": reset.toString(),
+          },
+        }
+      );
     }
+
+    // Parse request body
+    let body;
+    try {
+      body = await req.json();
+    } catch (error) {
+      return NextResponse.json(
+        { error: "Ugyldig JSON i request" },
+        { status: 400 }
+      );
+    }
+
+    // Valider input med Zod
+    const validationResult = bookingSchema.safeParse(body);
+
+    if (!validationResult.success) {
+      const errors = validationResult.error.issues.map((err: any) => ({
+        field: err.path.join("."),
+        message: err.message,
+      }));
+
+      console.log("Validation errors:", errors);
+
+      return NextResponse.json(
+        {
+          error: "Ugyldig input",
+          details: errors,
+        },
+        { status: 400 }
+      );
+    }
+
+    const { name, email, phone, serviceId, serviceName, price, date, time } =
+      validationResult.data;
+
+    // Ekstra validering: sjekk at dato ikke er i fortiden
+    const bookingDate = new Date(date);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    if (bookingDate < today) {
+      return NextResponse.json(
+        {
+          error: "Kan ikke booke tid i fortiden",
+        },
+        { status: 400 }
+      );
+    }
+
+    // Sanitiser navn (fjern ekstra mellomrom)
+    const sanitizedName = name.trim().replace(/\s+/g, " ");
 
     const startAtISO = toStartAtISO(date, time);
 
     // Opprett booking i database
     const booking = await prisma.booking.create({
       data: {
-        name,
-        email,
+        name: sanitizedName,
+        email: email.toLowerCase(),
         phone,
         serviceId,
         serviceName,
@@ -141,8 +249,8 @@ export async function POST(req: NextRequest) {
     // Send e-post bekreftelse
     try {
       const emailResult = await sendBookingConfirmation({
-        name,
-        email,
+        name: sanitizedName,
+        email: email.toLowerCase(),
         phone,
         serviceName,
         price: Number(price),
@@ -154,7 +262,7 @@ export async function POST(req: NextRequest) {
         console.error("⚠️ E-post kunne ikke sendes:", emailResult.error);
         // Vi fortsetter likevel siden bookingen er lagret
       } else {
-        console.log(" E-post bekreftelse sendt");
+        console.log("E-post bekreftelse sendt");
       }
     } catch (emailError) {
       console.error("⚠️ E-post feil:", emailError);
