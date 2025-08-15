@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import prisma from "@/lib/prisma";
 import { sendBookingConfirmation } from "@/lib/email";
-// import { bookingRateLimit } from "@/lib/ratelimit"; // Midlertidig deaktivert
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -111,7 +110,7 @@ export async function GET(req: NextRequest) {
       const minutes = String(bookingDate.getMinutes()).padStart(2, "0");
       const timeSlot = `${hours}:${minutes}`;
       console.log(
-        `📅 Booking found: ${bookingDate.toISOString()} (local: ${bookingDate.toLocaleString(
+        `Booking found: ${bookingDate.toISOString()} (local: ${bookingDate.toLocaleString(
           "no-NO"
         )}) -> ${timeSlot}`
       );
@@ -158,7 +157,7 @@ export async function GET(req: NextRequest) {
       // Sjekk om tiden er booket
       const isBooked = takenTimes.includes(timeSlot);
       if (isBooked) {
-        console.log(`⛔ Time slot ${timeSlot} is TAKEN - filtering out`);
+        console.log(`Time slot ${timeSlot} is TAKEN - filtering out`);
         return false;
       }
 
@@ -172,12 +171,12 @@ export async function GET(req: NextRequest) {
         const minimumTime = new Date(now.getTime() + 15 * 60 * 1000);
 
         if (timeToCheck <= minimumTime) {
-          console.log(`⏰ Time slot ${timeSlot} has PASSED - filtering out`);
+          console.log(`Time slot ${timeSlot} has PASSED - filtering out`);
           return false;
         }
       }
 
-      console.log(`✅ Time slot ${timeSlot} is AVAILABLE`);
+      console.log(`Time slot ${timeSlot} is AVAILABLE`);
       return true;
     });
 
@@ -271,7 +270,7 @@ export async function POST(req: NextRequest) {
     );
     const now = new Date();
 
-    console.log(`📅 FIXED Backend validation:`);
+    console.log(`  FIXED Backend validation:`);
     console.log(`  Booking: ${bookingDateTime.toLocaleString("no-NO")}`);
     console.log(`  Now: ${now.toLocaleString("no-NO")}`);
     console.log(`  Booking ISO: ${bookingDateTime.toISOString()}`);
@@ -284,7 +283,7 @@ export async function POST(req: NextRequest) {
 
     if (timeDifferenceHours < -1) {
       console.log(
-        `❌ Booking is ${Math.abs(timeDifferenceHours).toFixed(
+        `Booking is ${Math.abs(timeDifferenceHours).toFixed(
           1
         )} hours in the past`
       );
@@ -297,7 +296,7 @@ export async function POST(req: NextRequest) {
     }
 
     console.log(
-      `✅ Booking allowed: ${timeDifferenceHours.toFixed(1)} hours from now`
+      `Booking allowed: ${timeDifferenceHours.toFixed(1)} hours from now`
     );
 
     // Sanitiser navn (fjern ekstra mellomrom)
@@ -318,7 +317,7 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    console.log("✅ Booking created:", {
+    console.log("Booking created:", {
       id: booking.id,
       startAt: booking.startAt.toISOString(),
       localTime: booking.startAt.toLocaleString("no-NO"),
@@ -340,7 +339,7 @@ export async function POST(req: NextRequest) {
         console.error("⚠️ E-post kunne ikke sendes:", emailResult.error);
         // Vi fortsetter likevel siden bookingen er lagret
       } else {
-        console.log("✅ E-post bekreftelse sendt");
+        console.log("E-post bekreftelse sendt");
       }
     } catch (emailError) {
       console.error("⚠️ E-post feil:", emailError);

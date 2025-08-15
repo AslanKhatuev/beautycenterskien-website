@@ -194,14 +194,14 @@ export default function BookingForm({ date, time, onBookingSuccess }: Props) {
       const day = String(date.getDate()).padStart(2, "0");
       const localDateString = `${year}-${month}-${day}`;
 
-      console.log("📤 SENDING DATA TO SERVER (FIXED):");
+      console.log("SENDING DATA TO SERVER (FIXED):");
       console.log("  Raw date object:", date);
       console.log("  date.toISOString():", date.toISOString());
       console.log(
         "  date.toISOString().slice(0, 10):",
         date.toISOString().slice(0, 10)
       );
-      console.log("  ✅ LOCAL date string:", localDateString);
+      console.log("  LOCAL date string:", localDateString);
       console.log("  time:", time);
 
       const response = await fetch("/api/contact/bookings", {
