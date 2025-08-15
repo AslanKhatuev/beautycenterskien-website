@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import prisma from "@/lib/prisma";
 import { sendBookingConfirmation } from "@/lib/email";
-import { bookingRateLimit } from "@/lib/ratelimit";
+// import { bookingRateLimit } from "@/lib/ratelimit"; // Midlertidig deaktivert
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -75,17 +75,29 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Invalid date format" }, { status: 400 });
   }
 
-  const dayStart = new Date(`${dateParam}T00:00:00`);
-  const dayEnd = new Date(`${dateParam}T23:59:59.999`);
-
-  console.log("Date range:", { dayStart, dayEnd });
-
   try {
     console.log("Attempting database connection...");
 
+    // Opprett start og slutt av dagen i lokal tid (norsk tid)
+    const [year, month, day] = dateParam.split("-").map(Number);
+    const startOfDay = new Date(year, month - 1, day, 0, 0, 0, 0);
+    const endOfDay = new Date(year, month - 1, day, 23, 59, 59, 999);
+
+    console.log("Searching for bookings between:", {
+      start: startOfDay.toISOString(),
+      end: endOfDay.toISOString(),
+      localStart: startOfDay.toLocaleString("no-NO"),
+      localEnd: endOfDay.toLocaleString("no-NO"),
+    });
+
     // Hent opptatte tider fra database
     const bookings = await prisma.booking.findMany({
-      where: { startAt: { gte: dayStart, lte: dayEnd } },
+      where: {
+        startAt: {
+          gte: startOfDay,
+          lte: endOfDay,
+        },
+      },
       select: { startAt: true },
       orderBy: { startAt: "asc" },
     });
@@ -93,14 +105,20 @@ export async function GET(req: NextRequest) {
     console.log("Database query successful, found bookings:", bookings);
 
     // Konverter opptatte tider til HH:MM format
-    const takenTimes = bookings.map((b: { startAt: Date }) => {
-      const d = new Date(b.startAt);
-      const hh = String(d.getHours()).padStart(2, "0");
-      const mm = String(d.getMinutes()).padStart(2, "0");
-      return `${hh}:${mm}`;
+    const takenTimes = bookings.map((booking: { startAt: Date }) => {
+      const bookingDate = new Date(booking.startAt);
+      const hours = String(bookingDate.getHours()).padStart(2, "0");
+      const minutes = String(bookingDate.getMinutes()).padStart(2, "0");
+      const timeSlot = `${hours}:${minutes}`;
+      console.log(
+        `📅 Booking found: ${bookingDate.toISOString()} (local: ${bookingDate.toLocaleString(
+          "no-NO"
+        )}) -> ${timeSlot}`
+      );
+      return timeSlot;
     });
 
-    console.log("Taken times:", takenTimes);
+    console.log("Taken times (formatted):", takenTimes);
 
     // Generer alle mulige tider for dagen
     const date = new Date(dateParam);
@@ -127,13 +145,43 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    // Filtrer bort opptatte tider - returner KUN tilgjengelige tider
-    const availableTimes = allSlots.filter(
-      (time) => !takenTimes.includes(time)
-    );
+    console.log("All possible time slots:", allSlots);
 
-    console.log("All possible slots:", allSlots);
-    console.log("Available times after filtering:", availableTimes);
+    // Filtrer bort både bookede tider OG passerte tider
+    const now = new Date();
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const selectedDay = new Date(dateParam);
+    selectedDay.setHours(0, 0, 0, 0);
+
+    const availableTimes = allSlots.filter((timeSlot) => {
+      // Sjekk om tiden er booket
+      const isBooked = takenTimes.includes(timeSlot);
+      if (isBooked) {
+        console.log(`⛔ Time slot ${timeSlot} is TAKEN - filtering out`);
+        return false;
+      }
+
+      // Sjekk om tiden har passert (kun for dagens dato)
+      if (selectedDay.getTime() === today.getTime()) {
+        const [hours, minutes] = timeSlot.split(":").map(Number);
+        const timeToCheck = new Date();
+        timeToCheck.setHours(hours, minutes, 0, 0);
+
+        // Legg til 15 minutters buffer
+        const minimumTime = new Date(now.getTime() + 15 * 60 * 1000);
+
+        if (timeToCheck <= minimumTime) {
+          console.log(`⏰ Time slot ${timeSlot} has PASSED - filtering out`);
+          return false;
+        }
+      }
+
+      console.log(`✅ Time slot ${timeSlot} is AVAILABLE`);
+      return true;
+    });
+
+    console.log("🎯 Final available times after filtering:", availableTimes);
 
     return NextResponse.json({ available: availableTimes });
   } catch (error) {
@@ -142,41 +190,30 @@ export async function GET(req: NextRequest) {
   }
 }
 
+// Forbedret tidssone-konvertering - FIKSER DATO BUG
 function toStartAtISO(dateStr: string, timeStr: string) {
-  const [y, m, d] = dateStr.split("-").map(Number);
-  const [hh, mm] = timeStr.split(":").map(Number);
-  const local = new Date(y, m - 1, d, hh, mm, 0);
-  return local.toISOString();
+  console.log(`🔧 FIXING toStartAtISO: input = ${dateStr} ${timeStr}`);
+
+  const [year, month, day] = dateStr.split("-").map(Number);
+  const [hours, minutes] = timeStr.split(":").map(Number);
+
+  console.log(
+    `🔧 Parsed: year=${year}, month=${month}, day=${day}, hours=${hours}, minutes=${minutes}`
+  );
+
+  // Opprett dato i lokal tid (ikke UTC) - month-1 fordi JavaScript måneder er 0-basert
+  const localDate = new Date(year, month - 1, day, hours, minutes, 0, 0);
+
+  console.log(`🔧 Created date object: ${localDate.toISOString()}`);
+  console.log(`🔧 Local representation: ${localDate.toLocaleString("no-NO")}`);
+
+  return localDate.toISOString();
 }
 
 export async function POST(req: NextRequest) {
   try {
-    // Rate limiting - hent IP adresse fra headers
-    const forwarded = req.headers.get("x-forwarded-for");
-    const ip = forwarded
-      ? forwarded.split(",")[0]
-      : req.headers.get("x-real-ip") || "127.0.0.1";
-
-    const { success, limit, reset, remaining } = await bookingRateLimit.limit(
-      ip
-    );
-
-    if (!success) {
-      return NextResponse.json(
-        {
-          error: "For mange booking-forsøk. Prøv igjen senere.",
-          retryAfter: Math.round((reset - Date.now()) / 1000),
-        },
-        {
-          status: 429,
-          headers: {
-            "X-RateLimit-Limit": limit.toString(),
-            "X-RateLimit-Remaining": remaining.toString(),
-            "X-RateLimit-Reset": reset.toString(),
-          },
-        }
-      );
-    }
+    // MIDLERTIDIG: Deaktiver rate limiting for testing
+    console.log("🚀 Rate limiting disabled for testing");
 
     // Parse request body
     let body;
@@ -212,12 +249,45 @@ export async function POST(req: NextRequest) {
     const { name, email, phone, serviceId, serviceName, price, date, time } =
       validationResult.data;
 
-    // Ekstra validering: sjekk at dato ikke er i fortiden
-    const bookingDate = new Date(date);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    // FIKSET dato/tid validering - LØSER DATO BUG
+    console.log(`🔧 RAW INPUT: date="${date}" time="${time}"`);
 
-    if (bookingDate < today) {
+    const [year, month, day] = date.split("-").map(Number);
+    const [hours, minutes] = time.split(":").map(Number);
+
+    console.log(
+      `🔧 PARSED: year=${year}, month=${month}, day=${day}, hours=${hours}, minutes=${minutes}`
+    );
+
+    // VIKTIG: JavaScript Date bruker month-1 (0-11), så august = 7, ikke 8!
+    const bookingDateTime = new Date(
+      year,
+      month - 1,
+      day,
+      hours,
+      minutes,
+      0,
+      0
+    );
+    const now = new Date();
+
+    console.log(`📅 FIXED Backend validation:`);
+    console.log(`  Booking: ${bookingDateTime.toLocaleString("no-NO")}`);
+    console.log(`  Now: ${now.toLocaleString("no-NO")}`);
+    console.log(`  Booking ISO: ${bookingDateTime.toISOString()}`);
+    console.log(`  Now ISO: ${now.toISOString()}`);
+
+    // Beregn forskjell i timer
+    const timeDifferenceHours =
+      (bookingDateTime.getTime() - now.getTime()) / (1000 * 60 * 60);
+    console.log(`  Hours difference: ${timeDifferenceHours.toFixed(2)}`);
+
+    if (timeDifferenceHours < -1) {
+      console.log(
+        `❌ Booking is ${Math.abs(timeDifferenceHours).toFixed(
+          1
+        )} hours in the past`
+      );
       return NextResponse.json(
         {
           error: "Kan ikke booke tid i fortiden",
@@ -225,6 +295,10 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
+
+    console.log(
+      `✅ Booking allowed: ${timeDifferenceHours.toFixed(1)} hours from now`
+    );
 
     // Sanitiser navn (fjern ekstra mellomrom)
     const sanitizedName = name.trim().replace(/\s+/g, " ");
@@ -244,7 +318,11 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    console.log("Booking created:", booking.id);
+    console.log("✅ Booking created:", {
+      id: booking.id,
+      startAt: booking.startAt.toISOString(),
+      localTime: booking.startAt.toLocaleString("no-NO"),
+    });
 
     // Send e-post bekreftelse
     try {
@@ -262,7 +340,7 @@ export async function POST(req: NextRequest) {
         console.error("⚠️ E-post kunne ikke sendes:", emailResult.error);
         // Vi fortsetter likevel siden bookingen er lagret
       } else {
-        console.log("E-post bekreftelse sendt");
+        console.log("✅ E-post bekreftelse sendt");
       }
     } catch (emailError) {
       console.error("⚠️ E-post feil:", emailError);

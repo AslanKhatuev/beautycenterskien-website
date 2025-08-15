@@ -145,19 +145,13 @@ export default function AvailableTimes({
                 key={time}
                 onClick={() => handleTimeSelect(time)}
                 type="button"
-                disabled={isPast}
                 className={`w-28 sm:w-32 px-4 py-2 rounded-full text-sm font-medium border text-center transition-colors duration-200 ${
-                  isPast
-                    ? "bg-gray-200 border-gray-300 text-gray-400 cursor-not-allowed"
-                    : isSelected
+                  isSelected
                     ? "bg-pink-600 text-white border-pink-600"
                     : "bg-white border-gray-300 text-gray-700 hover:bg-pink-100 hover:border-pink-300"
                 }`}
               >
                 {time}
-                {isPast && (
-                  <span className="block text-xs text-gray-400">Passert</span>
-                )}
               </button>
             );
           })}

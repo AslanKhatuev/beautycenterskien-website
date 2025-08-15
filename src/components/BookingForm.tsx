@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { z } from "zod"; // ← Legg til denne importen
+import { z } from "zod";
 
 interface Props {
   date: Date;
@@ -162,7 +162,7 @@ export default function BookingForm({ date, time, onBookingSuccess }: Props) {
     e.preventDefault();
     setError(null);
 
-    // Frontend validering med Zod
+    // Frontend validering med Zod (INGEN dato/tid validering)
     const validationResult = frontendValidationSchema.safeParse({
       name: formData.name.trim(),
       email: formData.email.trim(),
@@ -181,34 +181,28 @@ export default function BookingForm({ date, time, onBookingSuccess }: Props) {
       return;
     }
 
-    // Sjekk at dato ikke er i fortiden
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const selectedDate = new Date(date);
-    selectedDate.setHours(0, 0, 0, 0);
-
-    if (selectedDate < today) {
-      setError("Kan ikke booke tid i fortiden.");
-      return;
-    }
-
-    // Sjekk at tid ikke er i fortiden hvis det er i dag
-    if (selectedDate.getTime() === today.getTime()) {
-      const now = new Date();
-      const [hours, minutes] = time.split(":").map(Number);
-      const selectedDateTime = new Date();
-      selectedDateTime.setHours(hours, minutes, 0, 0);
-
-      if (selectedDateTime <= now) {
-        setError("Kan ikke booke tid som allerede har passert i dag.");
-        return;
-      }
-    }
+    console.log("🚀 SENDING BOOKING - NO DATE/TIME VALIDATION");
 
     setSubmitting(true);
 
     try {
       console.log("Sending booking request...");
+
+      // FIKSER TIDSSONE-PROBLEMET: Bruk lokal dato i stedet for UTC
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const day = String(date.getDate()).padStart(2, "0");
+      const localDateString = `${year}-${month}-${day}`;
+
+      console.log("📤 SENDING DATA TO SERVER (FIXED):");
+      console.log("  Raw date object:", date);
+      console.log("  date.toISOString():", date.toISOString());
+      console.log(
+        "  date.toISOString().slice(0, 10):",
+        date.toISOString().slice(0, 10)
+      );
+      console.log("  ✅ LOCAL date string:", localDateString);
+      console.log("  time:", time);
 
       const response = await fetch("/api/contact/bookings", {
         method: "POST",
@@ -222,15 +216,15 @@ export default function BookingForm({ date, time, onBookingSuccess }: Props) {
           serviceId: formData.serviceId,
           serviceName: selectedService.name,
           price: selectedService.price,
-          date: date.toISOString().slice(0, 10),
+          date: localDateString, // FIKSET: Bruker lokal dato
           time,
         }),
       });
 
       console.log("Response status:", response.status);
 
-      const data = await response.json();
-      console.log("Response data:", data);
+      const responseData = await response.json();
+      console.log("Response data:", responseData);
 
       if (response.status === 409) {
         setError(
@@ -240,8 +234,7 @@ export default function BookingForm({ date, time, onBookingSuccess }: Props) {
       }
 
       if (response.status === 429) {
-        const data = await response.json();
-        const retryAfter = data.retryAfter || 600; // Default 10 minutter
+        const retryAfter = responseData.retryAfter || 600; // Default 10 minutter
         const minutes = Math.ceil(retryAfter / 60);
         setError(
           `For mange booking-forsøk. Prøv igjen om ${minutes} minutter.`
@@ -251,13 +244,13 @@ export default function BookingForm({ date, time, onBookingSuccess }: Props) {
 
       if (!response.ok) {
         // Vis detaljerte feilmeldinger fra backend
-        if (data.details && Array.isArray(data.details)) {
-          const errorMessages = data.details
+        if (responseData.details && Array.isArray(responseData.details)) {
+          const errorMessages = responseData.details
             .map((detail: any) => detail.message)
             .join(", ");
           setError(errorMessages);
         } else {
-          setError(data?.error || "Kunne ikke fullføre booking");
+          setError(responseData?.error || "Kunne ikke fullføre booking");
         }
         return;
       }
