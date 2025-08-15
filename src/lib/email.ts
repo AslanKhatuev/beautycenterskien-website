@@ -84,6 +84,7 @@ export async function sendBookingConfirmation(booking: BookingEmailData) {
       📱 +47 968 09 506</p>
       
       <p>Vi gleder oss til å se deg!</p>
+      <p>www.beautycenter.no<p>
       
       <p style="color: #6b7280; font-size: 14px; margin-top: 40px;">
         Med vennlig hilsen,<br/>
