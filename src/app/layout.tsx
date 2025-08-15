@@ -16,7 +16,7 @@ export default function RootLayout({
   return (
     <html lang="no">
       <head>
-        
+        <script src="https://cdn.tailwindcss.com"></script>
         <link rel="icon" href="/beauty.png" type="image/x-icon" />
         <title>Beauty Center Skien</title>
         <meta name="description" content="Velkommen til Beauty Center Skien" />
