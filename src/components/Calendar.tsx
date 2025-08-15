@@ -49,28 +49,9 @@ const Calendar: React.FC<CalendarProps> = ({
           onChange={handleDateChange}
           dateFormat="dd.MM.yyyy"
           inline
-          minDate={new Date()} // Blokkerer fortidsdatoer visuelt
-          calendarClassName="!bg-white !rounded-lg !shadow-md p-2"
-          dayClassName={(date) => {
-            const baseClasses =
-              "text-sm hover:bg-pink-100 rounded-full w-8 h-8 flex items-center justify-center";
-            const isSelected =
-              selectedDate?.toDateString() === date.toDateString();
-            const isPast = !isDateSelectable(date);
-
-            if (isPast) {
-              return (
-                baseClasses +
-                " text-gray-300 cursor-not-allowed hover:bg-gray-100"
-              );
-            }
-
-            if (isSelected) {
-              return baseClasses + " bg-pink-500 text-white";
-            }
-
-            return baseClasses;
-          }}
+          minDate={new Date()}
+          calendarClassName="!border-0 !shadow-none"
+          wrapperClassName="w-full"
         />
       </div>
     </div>
