@@ -32,7 +32,7 @@ export default function AvailableTimes({
 
       try {
         const dateString = date.toISOString().split("T")[0];
-        console.log("🔍 Fetching available times for date:", dateString);
+        console.log("Fetching available times for date:", dateString);
 
         const response = await fetch(
           `/api/contact/bookings?date=${dateString}`
@@ -47,7 +47,7 @@ export default function AvailableTimes({
         }
 
         const data = await response.json();
-        console.log("✅ Available times received:", data);
+        console.log("Available times received:", data);
 
         setAvailableTimes(data.available || []);
       } catch (error) {
@@ -116,7 +116,7 @@ export default function AvailableTimes({
         </div>
         <div className="text-center py-8">
           <div className="text-red-600 mb-2" role="alert">
-            ❌ Feil ved henting av tider
+            Feil ved henting av tider
           </div>
           <div className="text-sm text-red-500">{error}</div>
           <p className="text-gray-600 mt-4">

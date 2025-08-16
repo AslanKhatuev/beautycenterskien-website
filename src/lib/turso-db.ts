@@ -106,7 +106,7 @@ export async function createBooking(
     createdAt: new Date(row.createdAt as string),
   };
 
-  console.log(`🔍 DEBUG: Created booking:`, {
+  console.log(`DEBUG: Created booking:`, {
     id: createdBooking.id,
     startAt: createdBooking.startAt.toISOString(),
     startAtLocal: createdBooking.startAt.toLocaleString("no-NO"),

@@ -110,10 +110,10 @@ export async function sendBookingConfirmation(booking: BookingEmailData) {
       html: customerEmailHtml,
     });
 
-    console.log("✅ E-poster sendt successfully");
+    console.log("E-poster sendt successfully");
     return { success: true };
   } catch (error) {
-    console.error("❌ Feil ved sending av e-post:", error);
+    console.error("Feil ved sending av e-post:", error);
     return {
       success: false,
       error: error instanceof Error ? error.message : "Ukjent feil",

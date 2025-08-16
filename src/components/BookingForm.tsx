@@ -203,7 +203,7 @@ export default function BookingForm({
         time: time,
       };
 
-      console.log("📤 Sending booking data:", bookingData);
+      console.log("Sending booking data:", bookingData);
 
       const response = await fetch("/api/contact/bookings", {
         method: "POST",
@@ -214,7 +214,7 @@ export default function BookingForm({
       });
 
       const result = await response.json();
-      console.log("📥 Booking response:", result);
+      console.log("Booking response:", result);
 
       if (!response.ok) {
         throw new Error(
@@ -239,7 +239,7 @@ export default function BookingForm({
         price: 0,
       });
     } catch (error) {
-      console.error("❌ Booking error:", error);
+      console.error("Booking error:", error);
       alert(
         `Booking feilet: ${
           error instanceof Error ? error.message : "Ukjent feil"

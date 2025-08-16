@@ -1,20 +1,20 @@
 // src/utils/date.ts
 
-/** Tidspunkt som "HH:MM", f.eks. "09:00" eller "14:30" */
+
 export type HHMM = `${number}${number}:${number}${number}`;
 
 // Åpningstider
 export const WEEKDAY_OPEN = 9;
-export const WEEKDAY_CLOSE = 19; // eksklusiv slutt (19:00 siste start er 18:30)
+export const WEEKDAY_CLOSE = 19; 
 export const SATURDAY_OPEN = 9;
-export const SATURDAY_CLOSE = 15; // eksklusiv slutt
+export const SATURDAY_CLOSE = 15; 
 
 /** Er det søndag? */
 export function isSunday(date: Date): boolean {
   return date.getDay() === 0;
 }
 
-/** Generer 30-min slotter fra startHour til endHour (end er eksklusiv). */
+
 export function generateTimeSlots(startHour: number, endHour: number): HHMM[] {
   const slots: HHMM[] = [];
   for (let hour = startHour; hour < endHour; hour++) {

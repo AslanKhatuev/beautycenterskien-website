@@ -13,9 +13,9 @@ export default function Header() {
           <Image
             src="/beautycenter.jpg"
             alt="Massasjelogo"
-            width={140} // <- match visningsstørrelsen
-            height={70} // <- riktig forhold
-            className="rounded-[10px]" // ikke sett w-[...] her
+            width={140} 
+            height={70} 
+            className="rounded-[10px]" 
             priority
           />
         </Link>
