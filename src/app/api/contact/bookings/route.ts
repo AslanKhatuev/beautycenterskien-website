@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { prisma } from "@/lib/prisma";
+import { getBookingsByDate, createBooking } from "@/lib/turso-db";
 import { sendBookingConfirmation } from "@/lib/email";
 
 export const runtime = "nodejs";
@@ -44,22 +44,9 @@ const bookingSchema = z.object({
   time: z.string().regex(/^\d{2}:\d{2}$/, "Tid må være i formatet HH:MM"),
 });
 
-// Interface for Prisma errors
-interface PrismaError extends Error {
-  code: string;
-}
-
-function isPrismaError(error: unknown): error is PrismaError {
-  return (
-    error instanceof Error &&
-    "code" in error &&
-    typeof (error as { code: string }).code === "string"
-  );
-}
-
 // GET /api/contact/bookings?date=YYYY-MM-DD
 export async function GET(req: NextRequest) {
-  console.log("🚀 API route GET /api/contact/bookings called");
+  console.log("🚀 API route GET /api/contact/bookings called (Turso)");
 
   const dateParam = req.nextUrl.searchParams.get("date");
   console.log("📅 Date parameter:", dateParam);
@@ -77,54 +64,15 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    console.log("🔌 Testing database connection...");
+    console.log("🔌 Testing Turso database connection...");
 
-    // Test database connection først
-    try {
-      await prisma.$connect();
-      console.log("✅ Database connection successful");
-    } catch (dbError) {
-      console.error("❌ Database connection failed:", dbError);
-      return NextResponse.json(
-        {
-          error: "Database connection failed",
-          details: dbError instanceof Error ? dbError.message : "Unknown error",
-        },
-        { status: 500 }
-      );
-    }
+    // Hent opptatte tider fra Turso database
+    const bookings = await getBookingsByDate(dateParam);
 
-    // Opprett start og slutt av dagen i lokal tid (norsk tid)
-    const [year, month, day] = dateParam.split("-").map(Number);
-    const startOfDay = new Date(year, month - 1, day, 0, 0, 0, 0);
-    const endOfDay = new Date(year, month - 1, day, 23, 59, 59, 999);
-
-    console.log("🔍 Searching for bookings between:", {
-      start: startOfDay.toISOString(),
-      end: endOfDay.toISOString(),
-      localStart: startOfDay.toLocaleString("no-NO"),
-      localEnd: endOfDay.toLocaleString("no-NO"),
-    });
-
-    // Hent opptatte tider fra database
-    const bookings = await prisma.booking.findMany({
-      where: {
-        startAt: {
-          gte: startOfDay,
-          lte: endOfDay,
-        },
-      },
-      select: { startAt: true },
-      orderBy: { startAt: "asc" },
-    });
-
-    console.log(
-      "✅ Database query successful, found bookings:",
-      bookings.length
-    );
+    console.log("✅ Turso query successful, found bookings:", bookings.length);
 
     // Konverter opptatte tider til HH:MM format
-    const takenTimes = bookings.map((booking: { startAt: Date }) => {
+    const takenTimes = bookings.map((booking) => {
       const bookingDate = new Date(booking.startAt);
       const hours = String(bookingDate.getHours()).padStart(2, "0");
       const minutes = String(bookingDate.getMinutes()).padStart(2, "0");
@@ -174,11 +122,28 @@ export async function GET(req: NextRequest) {
     const selectedDay = new Date(dateParam);
     selectedDay.setHours(0, 0, 0, 0);
 
+    console.log("🕐 Time filtering debug:", {
+      now: now.toLocaleString("no-NO"),
+      today: today.toLocaleString("no-NO"),
+      selectedDay: selectedDay.toLocaleString("no-NO"),
+      isToday: selectedDay.getTime() === today.getTime(),
+      currentHour: now.getHours(),
+      currentMinutes: now.getMinutes(),
+    });
+
     const availableTimes = allSlots.filter((timeSlot) => {
       // Sjekk om tiden er booket
       const isBooked = takenTimes.includes(timeSlot);
       if (isBooked) {
         console.log(`❌ Time slot ${timeSlot} is TAKEN - filtering out`);
+        return false;
+      }
+
+      // Sjekk om datoen er i fortiden (ikke i dag)
+      if (selectedDay < today) {
+        console.log(
+          `📅 Date ${dateParam} is in the past - filtering out all times`
+        );
         return false;
       }
 
@@ -188,8 +153,14 @@ export async function GET(req: NextRequest) {
         const timeToCheck = new Date();
         timeToCheck.setHours(hours, minutes, 0, 0);
 
-        // Legg til 15 minutters buffer
-        const minimumTime = new Date(now.getTime() + 15 * 60 * 1000);
+        // Økt buffer til 30 minutter for sikkerhet
+        const minimumTime = new Date(now.getTime() + 30 * 60 * 1000);
+
+        console.log(`⏰ Checking time ${timeSlot}:`, {
+          timeToCheck: timeToCheck.toLocaleString("no-NO"),
+          minimumTime: minimumTime.toLocaleString("no-NO"),
+          hasPassed: timeToCheck <= minimumTime,
+        });
 
         if (timeToCheck <= minimumTime) {
           console.log(`⏳ Time slot ${timeSlot} has PASSED - filtering out`);
@@ -221,15 +192,12 @@ export async function GET(req: NextRequest) {
       },
       { status: 500 }
     );
-  } finally {
-    // Lukk database-tilkobling
-    await prisma.$disconnect();
   }
 }
 
-// Forbedret tidssone-konvertering - FIKSER DATO BUG
+// Forbedret tidssone-konvertering
 function toStartAtISO(dateStr: string, timeStr: string) {
-  console.log(`🔧 FIXING toStartAtISO: input = ${dateStr} ${timeStr}`);
+  console.log(`🔧 toStartAtISO: input = ${dateStr} ${timeStr}`);
 
   const [year, month, day] = dateStr.split("-").map(Number);
   const [hours, minutes] = timeStr.split(":").map(Number);
@@ -244,28 +212,12 @@ function toStartAtISO(dateStr: string, timeStr: string) {
   console.log(`🔧 Created date object: ${localDate.toISOString()}`);
   console.log(`🔧 Local representation: ${localDate.toLocaleString("no-NO")}`);
 
-  return localDate.toISOString();
+  return localDate;
 }
 
 export async function POST(req: NextRequest) {
   try {
-    // MIDLERTIDIG: Deaktiver rate limiting for testing
-    console.log("🚀 Rate limiting disabled for testing");
-
-    // Test database connection først
-    try {
-      await prisma.$connect();
-      console.log("✅ Database connection successful for POST");
-    } catch (dbError) {
-      console.error("❌ Database connection failed in POST:", dbError);
-      return NextResponse.json(
-        {
-          error: "Database connection failed",
-          details: dbError instanceof Error ? dbError.message : "Unknown error",
-        },
-        { status: 500 }
-      );
-    }
+    console.log("🚀 POST booking request (Turso)");
 
     // Parse request body
     let body;
@@ -301,76 +253,52 @@ export async function POST(req: NextRequest) {
     const { name, email, phone, serviceId, serviceName, price, date, time } =
       validationResult.data;
 
-    // FIKSET dato/tid validering - LØSER DATO BUG
+    // Dato/tid validering
     console.log(`🔧 RAW INPUT: date="${date}" time="${time}"`);
 
-    const [year, month, day] = date.split("-").map(Number);
-    const [hours, minutes] = time.split(":").map(Number);
-
-    console.log(
-      `🔧 PARSED: year=${year}, month=${month}, day=${day}, hours=${hours}, minutes=${minutes}`
-    );
-
-    // VIKTIG: JavaScript Date bruker month-1 (0-11), så august = 7, ikke 8!
-    const bookingDateTime = new Date(
-      year,
-      month - 1,
-      day,
-      hours,
-      minutes,
-      0,
-      0
-    );
+    const bookingDateTime = toStartAtISO(date, time);
     const now = new Date();
 
-    console.log(`  FIXED Backend validation:`);
+    console.log(`🔧 Backend validation:`);
     console.log(`  Booking: ${bookingDateTime.toLocaleString("no-NO")}`);
     console.log(`  Now: ${now.toLocaleString("no-NO")}`);
-    console.log(`  Booking ISO: ${bookingDateTime.toISOString()}`);
-    console.log(`  Now ISO: ${now.toISOString()}`);
 
     // Beregn forskjell i timer
     const timeDifferenceHours =
       (bookingDateTime.getTime() - now.getTime()) / (1000 * 60 * 60);
     console.log(`  Hours difference: ${timeDifferenceHours.toFixed(2)}`);
 
-    if (timeDifferenceHours < -1) {
+    // Økt buffer til 30 minutter (0.5 timer) for sikkerhet
+    if (timeDifferenceHours < 0.5) {
       console.log(
         `Booking is ${Math.abs(timeDifferenceHours).toFixed(
           1
-        )} hours in the past`
+        )} hours in the past or too close to current time`
       );
       return NextResponse.json(
         {
-          error: "Kan ikke booke tid i fortiden",
+          error:
+            "Kan ikke booke tid i fortiden eller for nært i tid. Vennligst velg en tid minst 30 minutter frem i tid.",
         },
         { status: 400 }
       );
     }
 
-    console.log(
-      `Booking allowed: ${timeDifferenceHours.toFixed(1)} hours from now`
-    );
-
     // Sanitiser navn (fjern ekstra mellomrom)
     const sanitizedName = name.trim().replace(/\s+/g, " ");
 
-    const startAtISO = toStartAtISO(date, time);
-
-    // Opprett booking i database
-    const booking = await prisma.booking.create({
-      data: {
-        name: sanitizedName,
-        email: email.toLowerCase(),
-        phone,
-        serviceId,
-        serviceName,
-        price: Number(price),
-        startAt: new Date(startAtISO),
-      },
+    // Opprett booking i Turso database
+    const booking = await createBooking({
+      name: sanitizedName,
+      email: email.toLowerCase(),
+      phone,
+      serviceId,
+      serviceName,
+      price: Number(price),
+      startAt: bookingDateTime,
     });
 
-    console.log("Booking created:", {
+    console.log("✅ Booking created in Turso:", {
       id: booking.id,
       startAt: booking.startAt.toISOString(),
       localTime: booking.startAt.toLocaleString("no-NO"),
@@ -392,7 +320,7 @@ export async function POST(req: NextRequest) {
         console.error("⚠️ E-post kunne ikke sendes:", emailResult.error);
         // Vi fortsetter likevel siden bookingen er lagret
       } else {
-        console.log("E-post bekreftelse sendt");
+        console.log("✅ E-post bekreftelse sendt");
       }
     } catch (emailError) {
       console.error("⚠️ E-post feil:", emailError);
@@ -405,13 +333,7 @@ export async function POST(req: NextRequest) {
       message: "Booking opprettet og e-post sendt",
     });
   } catch (err: unknown) {
-    if (isPrismaError(err) && err.code === "P2002") {
-      return NextResponse.json(
-        { error: "Tiden er allerede booket." },
-        { status: 409 }
-      );
-    }
-    console.error("POST /api/contact/bookings error:", err);
+    console.error("💥 POST /api/contact/bookings error:", err);
 
     // Mer detaljert feilmeldinger
     if (err instanceof Error) {
@@ -427,8 +349,5 @@ export async function POST(req: NextRequest) {
       },
       { status: 500 }
     );
-  } finally {
-    // Lukk database-tilkobling
-    await prisma.$disconnect();
   }
 }
