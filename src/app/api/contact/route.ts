@@ -1,7 +1,6 @@
 // src/app/api/contact/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { contactRateLimit } from "@/lib/ratelimit";
 import nodemailer from "nodemailer";
 
 // Zod schema for kontaktskjema validering
@@ -56,32 +55,11 @@ const containsSpam = (text: string): boolean => {
 
 export async function POST(req: NextRequest) {
   try {
-    // Rate limiting - hent IP adresse
+    // Hent IP adresse for logging
     const forwarded = req.headers.get("x-forwarded-for");
     const ip = forwarded
       ? forwarded.split(",")[0]
       : req.headers.get("x-real-ip") || "127.0.0.1";
-
-    const { success, limit, reset, remaining } = await contactRateLimit.limit(
-      ip
-    );
-
-    if (!success) {
-      return NextResponse.json(
-        {
-          error: "For mange meldinger sendt. Prøv igjen senere.",
-          retryAfter: Math.round((reset - Date.now()) / 1000),
-        },
-        {
-          status: 429,
-          headers: {
-            "X-RateLimit-Limit": limit.toString(),
-            "X-RateLimit-Remaining": remaining.toString(),
-            "X-RateLimit-Reset": reset.toString(),
-          },
-        }
-      );
-    }
 
     // Parse request body
     let body;
