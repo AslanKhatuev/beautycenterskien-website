@@ -1,6 +1,9 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Fjern turbopack siden det ikke støttes i din versjon
+  // Fjern eller kommenter ut denne linjen:
+  // experimental: {
+  //   turbopack: true,
+  // },
 };
 
 export default nextConfig;
