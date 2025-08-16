@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import prisma from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 import { sendBookingConfirmation } from "@/lib/email";
 
 export const runtime = "nodejs";
@@ -59,30 +59,47 @@ function isPrismaError(error: unknown): error is PrismaError {
 
 // GET /api/contact/bookings?date=YYYY-MM-DD
 export async function GET(req: NextRequest) {
-  console.log("API route called");
+  console.log("🚀 API route GET /api/contact/bookings called");
 
   const dateParam = req.nextUrl.searchParams.get("date");
-  console.log("Date parameter:", dateParam);
+  console.log("📅 Date parameter:", dateParam);
 
   if (!dateParam) {
+    console.log("❌ Missing date parameter");
     return NextResponse.json({ error: "Missing date" }, { status: 400 });
   }
 
   // Valider dato format
   const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
   if (!dateRegex.test(dateParam)) {
+    console.log("❌ Invalid date format:", dateParam);
     return NextResponse.json({ error: "Invalid date format" }, { status: 400 });
   }
 
   try {
-    console.log("Attempting database connection...");
+    console.log("🔌 Testing database connection...");
+
+    // Test database connection først
+    try {
+      await prisma.$connect();
+      console.log("✅ Database connection successful");
+    } catch (dbError) {
+      console.error("❌ Database connection failed:", dbError);
+      return NextResponse.json(
+        {
+          error: "Database connection failed",
+          details: dbError instanceof Error ? dbError.message : "Unknown error",
+        },
+        { status: 500 }
+      );
+    }
 
     // Opprett start og slutt av dagen i lokal tid (norsk tid)
     const [year, month, day] = dateParam.split("-").map(Number);
     const startOfDay = new Date(year, month - 1, day, 0, 0, 0, 0);
     const endOfDay = new Date(year, month - 1, day, 23, 59, 59, 999);
 
-    console.log("Searching for bookings between:", {
+    console.log("🔍 Searching for bookings between:", {
       start: startOfDay.toISOString(),
       end: endOfDay.toISOString(),
       localStart: startOfDay.toLocaleString("no-NO"),
@@ -101,7 +118,10 @@ export async function GET(req: NextRequest) {
       orderBy: { startAt: "asc" },
     });
 
-    console.log("Database query successful, found bookings:", bookings);
+    console.log(
+      "✅ Database query successful, found bookings:",
+      bookings.length
+    );
 
     // Konverter opptatte tider til HH:MM format
     const takenTimes = bookings.map((booking: { startAt: Date }) => {
@@ -110,16 +130,16 @@ export async function GET(req: NextRequest) {
       const minutes = String(bookingDate.getMinutes()).padStart(2, "0");
       const timeSlot = `${hours}:${minutes}`;
       console.log(
-        `Booking found: ${bookingDate.toISOString()} (local: ${bookingDate.toLocaleString(
+        `📋 Booking found: ${bookingDate.toISOString()} (local: ${bookingDate.toLocaleString(
           "no-NO"
         )}) -> ${timeSlot}`
       );
       return timeSlot;
     });
 
-    console.log("Taken times (formatted):", takenTimes);
+    console.log("🕐 Taken times (formatted):", takenTimes);
 
-    // Generer alle mulige tider for dagen - ENDRET TIL HVER TIME
+    // Generer alle mulige tider for dagen - HVER TIME
     const date = new Date(dateParam);
     const dayOfWeek = date.getDay(); // 0 = søndag, 6 = lørdag
 
@@ -128,23 +148,24 @@ export async function GET(req: NextRequest) {
     if (dayOfWeek === 0) {
       // Søndag - stengt
       allSlots = [];
+      console.log("🚫 Sunday - closed");
     } else if (dayOfWeek === 6) {
       // Lørdag: 09:00 - 15:00 (hver time)
       for (let hour = 9; hour < 15; hour++) {
         const h = hour.toString().padStart(2, "0");
         allSlots.push(`${h}:00`);
-        // Fjernet 30-minutters slots
       }
+      console.log("🕘 Saturday hours: 09:00 - 15:00");
     } else {
       // Ukedager: 09:00 - 19:00 (hver time)
       for (let hour = 9; hour < 19; hour++) {
         const h = hour.toString().padStart(2, "0");
         allSlots.push(`${h}:00`);
-        // Fjernet 30-minutters slots
       }
+      console.log("🕘 Weekday hours: 09:00 - 19:00");
     }
 
-    console.log("All possible time slots:", allSlots);
+    console.log("⏰ All possible time slots:", allSlots);
 
     // Filtrer bort både bookede tider OG passerte tider
     const now = new Date();
@@ -157,7 +178,7 @@ export async function GET(req: NextRequest) {
       // Sjekk om tiden er booket
       const isBooked = takenTimes.includes(timeSlot);
       if (isBooked) {
-        console.log(`Time slot ${timeSlot} is TAKEN - filtering out`);
+        console.log(`❌ Time slot ${timeSlot} is TAKEN - filtering out`);
         return false;
       }
 
@@ -171,12 +192,12 @@ export async function GET(req: NextRequest) {
         const minimumTime = new Date(now.getTime() + 15 * 60 * 1000);
 
         if (timeToCheck <= minimumTime) {
-          console.log(`Time slot ${timeSlot} has PASSED - filtering out`);
+          console.log(`⏳ Time slot ${timeSlot} has PASSED - filtering out`);
           return false;
         }
       }
 
-      console.log(`Time slot ${timeSlot} is AVAILABLE`);
+      console.log(`✅ Time slot ${timeSlot} is AVAILABLE`);
       return true;
     });
 
@@ -184,8 +205,25 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({ available: availableTimes });
   } catch (error) {
-    console.error("GET bookings error:", error);
-    return NextResponse.json({ error: "Database error" }, { status: 500 });
+    console.error("💥 GET bookings error:", error);
+
+    // Mer detaljert feilmeldinger
+    if (error instanceof Error) {
+      console.error("Error name:", error.name);
+      console.error("Error message:", error.message);
+      console.error("Error stack:", error.stack);
+    }
+
+    return NextResponse.json(
+      {
+        error: "Database error",
+        details: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 }
+    );
+  } finally {
+    // Lukk database-tilkobling
+    await prisma.$disconnect();
   }
 }
 
@@ -213,6 +251,21 @@ export async function POST(req: NextRequest) {
   try {
     // MIDLERTIDIG: Deaktiver rate limiting for testing
     console.log("🚀 Rate limiting disabled for testing");
+
+    // Test database connection først
+    try {
+      await prisma.$connect();
+      console.log("✅ Database connection successful for POST");
+    } catch (dbError) {
+      console.error("❌ Database connection failed in POST:", dbError);
+      return NextResponse.json(
+        {
+          error: "Database connection failed",
+          details: dbError instanceof Error ? dbError.message : "Unknown error",
+        },
+        { status: 500 }
+      );
+    }
 
     // Parse request body
     let body;
@@ -359,9 +412,23 @@ export async function POST(req: NextRequest) {
       );
     }
     console.error("POST /api/contact/bookings error:", err);
+
+    // Mer detaljert feilmeldinger
+    if (err instanceof Error) {
+      console.error("Error name:", err.name);
+      console.error("Error message:", err.message);
+      console.error("Error stack:", err.stack);
+    }
+
     return NextResponse.json(
-      { error: "Internal Server Error" },
+      {
+        error: "Internal Server Error",
+        details: err instanceof Error ? err.message : "Unknown error",
+      },
       { status: 500 }
     );
+  } finally {
+    // Lukk database-tilkobling
+    await prisma.$disconnect();
   }
 }
