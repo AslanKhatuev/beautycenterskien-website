@@ -1,44 +1,19 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { z } from "zod";
+import { useState, useEffect } from "react";
+import { User, Mail, Phone, Calendar, Clock, CreditCard } from "lucide-react";
 
-interface Props {
+interface BookingFormProps {
   date: Date;
   time: string;
-  onBookingSuccess?: (details: {
-    serviceName: string;
-    date: Date;
-    time: string;
-    price: number;
-  }) => void;
+  onBookingSuccess: (details: any) => void;
 }
 
-type ServiceItem = { id: string; name: string; price: number };
-type ServiceGroup = { group: string; items: ServiceItem[] };
-
-// Frontend validering schema (samme som backend)
-const frontendValidationSchema = z.object({
-  name: z
-    .string()
-    .min(2, "Navn må være minst 2 tegn")
-    .max(100, "Navn kan ikke være lengre enn 100 tegn")
-    .regex(/^[a-zA-ZæøåÆØÅ\s\-\.]+$/, "Navn kan kun inneholde bokstaver"),
-
-  email: z
-    .string()
-    .email("Ugyldig e-postadresse")
-    .max(100, "E-post kan ikke være lengre enn 100 tegn"),
-
-  phone: z.string().regex(/^\d{8}$/, "Telefonnummer må være nøyaktig 8 siffer"),
-
-  serviceId: z.string().min(1, "Velg en behandling"),
-});
-
-const SERVICE_GROUPS: ServiceGroup[] = [
+// Tilgjengelige tjenester
+const serviceCategories = [
   {
-    group: "Massasje",
-    items: [
+    category: "Massasje",
+    services: [
       { id: "klassisk-massasje", name: "Klassisk massasje", price: 750 },
       { id: "terapeutisk-massasje", name: "Terapeutisk massasje", price: 850 },
       { id: "sportsmassasje", name: "Sportsmassasje", price: 800 },
@@ -53,8 +28,8 @@ const SERVICE_GROUPS: ServiceGroup[] = [
         price: 1000,
       },
       {
-        id: "ansikt-hals-dekollete",
-        name: "Ansikt-, hals- og dekolletémassasje",
+        id: "ansikts-hals-dekollete-massasje",
+        name: "Ansikts-, hals- og dekolletémassasje",
         price: 650,
       },
       { id: "handmassasje", name: "Håndmassasje med omsorg", price: 550 },
@@ -62,8 +37,8 @@ const SERVICE_GROUPS: ServiceGroup[] = [
     ],
   },
   {
-    group: "Kosmetologi & apparatbehandlinger",
-    items: [
+    category: "Kosmetologi & Apparatbehandlinger",
+    services: [
       {
         id: "kavitasjon-1-omrade",
         name: "Kavitasjon (ultralyd), 1 område",
@@ -75,23 +50,23 @@ const SERVICE_GROUPS: ServiceGroup[] = [
         price: 1000,
       },
       {
-        id: "vakuummassasje-hel-kropp",
+        id: "vakuummassasje-hele-kroppen",
         name: "Vakuummassasje – Hele kroppen",
         price: 1000,
       },
       {
-        id: "vakuummassasje-rf-hel-kropp",
+        id: "vakuummassasje-rf-hele-kroppen",
         name: "Vakuummassasje med RF – Hele kroppen",
         price: 1200,
       },
     ],
   },
   {
-    group: "Hudpleie og andre behandlinger",
-    items: [
+    category: "Hudpleie og andre behandlinger",
+    services: [
       { id: "ansiktsrens", name: "Ansiktsrens", price: 1000 },
       {
-        id: "peeling-biorevitalisering",
+        id: "peeling-biorevitaliserende",
         name: "Peeling + biorevitaliserende middel",
         price: 1200,
       },
@@ -106,297 +81,418 @@ const SERVICE_GROUPS: ServiceGroup[] = [
         price: 1700,
       },
       {
-        id: "hudpleie-ansikt-hals-dekolletasje-hender",
+        id: "hudpleie-ansikt-hals-dekollete-hender",
         name: "Hudpleie for ansikt, hals, dekolletasje og hender",
         price: 1200,
       },
       {
-        id: "apparatkosmetologi-rf",
+        id: "apparatkosmetologi-rf-lofting",
         name: "Apparatkosmetologi (RF-løfting)",
         price: 1000,
       },
       {
-        id: "kavitasjon-fett",
+        id: "kavitasjon-fettfjerning",
         name: "Kavitasjon (fjerning av fettansamlinger)",
         price: 1000,
       },
-      { id: "mikrostrom-serum", name: "Mikrostrømterapi + serum", price: 1300 },
       {
-        id: "harhodebunn-behandling",
-        name: "Behandling mot hårtap/flass/fet hodebunn",
+        id: "mikrostromterapi-serum",
+        name: "Mikrostrømterapi + serum",
+        price: 1300,
+      },
+      {
+        id: "behandling-hartap-flass",
+        name: "Behandlinger mot hårtap/flass/fet hodebunn",
         price: 1000,
       },
-      { id: "konsultasjon-20", name: "Konsultasjon (20 min)", price: 300 },
+      { id: "konsultasjon", name: "Konsultasjon (20 min)", price: 300 },
     ],
   },
 ];
 
-export default function BookingForm({ date, time, onBookingSuccess }: Props) {
+// Flat liste av alle tjenester for enkel søking
+const allServices = serviceCategories.flatMap((cat) => cat.services);
+
+export default function BookingForm({
+  date,
+  time,
+  onBookingSuccess,
+}: BookingFormProps) {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
     phone: "",
     serviceId: "",
+    serviceName: "",
+    price: 0,
   });
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
-  const allServices = useMemo<ServiceItem[]>(
-    () => SERVICE_GROUPS.flatMap((g) => g.items),
-    []
-  );
+  const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [isClient, setIsClient] = useState(false);
 
-  const selectedService = useMemo(
-    () => allServices.find((s) => s.id === formData.serviceId),
-    [allServices, formData.serviceId]
-  );
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
-  const handleChange = (
+  const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-    if (error) setError(null);
+    const { name, value } = e.target;
+
+    if (name === "serviceId") {
+      const selectedService = allServices.find((s) => s.id === value);
+      setFormData((prev) => ({
+        ...prev,
+        serviceId: value,
+        serviceName: selectedService?.name || "",
+        price: selectedService?.price || 0,
+      }));
+    } else {
+      setFormData((prev) => ({ ...prev, [name]: value }));
+    }
+
+    // Clear error when user starts typing
+    if (errors[name]) {
+      setErrors((prev) => ({ ...prev, [name]: "" }));
+    }
+  };
+
+  const validateForm = () => {
+    const newErrors: Record<string, string> = {};
+
+    if (!formData.name.trim()) {
+      newErrors.name = "Navn er påkrevd";
+    } else if (formData.name.length < 2) {
+      newErrors.name = "Navn må være minst 2 tegn";
+    }
+
+    if (!formData.email.trim()) {
+      newErrors.email = "E-post er påkrevd";
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      newErrors.email = "Ugyldig e-postadresse";
+    }
+
+    if (!formData.phone.trim()) {
+      newErrors.phone = "Telefonnummer er påkrevd";
+    } else if (!/^\d{8}$/.test(formData.phone)) {
+      newErrors.phone = "Telefonnummer må være 8 siffer";
+    }
+
+    if (!formData.serviceId) {
+      newErrors.serviceId = "Velg en tjeneste";
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null);
 
-    // Frontend validering med Zod (INGEN dato/tid validering)
-    const validationResult = frontendValidationSchema.safeParse({
-      name: formData.name.trim(),
-      email: formData.email.trim(),
-      phone: formData.phone.trim(),
-      serviceId: formData.serviceId,
-    });
-
-    if (!validationResult.success) {
-      const firstError = validationResult.error.issues[0];
-      setError(firstError.message);
+    if (!validateForm()) {
       return;
     }
 
-    if (!selectedService) {
-      setError("Velg behandling før du fortsetter.");
-      return;
-    }
-
-    console.log("🚀 SENDING BOOKING - NO DATE/TIME VALIDATION");
-
-    setSubmitting(true);
+    setLoading(true);
 
     try {
-      console.log("Sending booking request...");
+      const bookingData = {
+        ...formData,
+        date: date.toISOString().split("T")[0],
+        time: time,
+      };
 
-      // FIKSER TIDSSONE-PROBLEMET: Bruk lokal dato i stedet for UTC
-      const year = date.getFullYear();
-      const month = String(date.getMonth() + 1).padStart(2, "0");
-      const day = String(date.getDate()).padStart(2, "0");
-      const localDateString = `${year}-${month}-${day}`;
-
-      console.log("SENDING DATA TO SERVER (FIXED):");
-      console.log("  Raw date object:", date);
-      console.log("  date.toISOString():", date.toISOString());
-      console.log(
-        "  date.toISOString().slice(0, 10):",
-        date.toISOString().slice(0, 10)
-      );
-      console.log("  LOCAL date string:", localDateString);
-      console.log("  time:", time);
+      console.log("📤 Sending booking data:", bookingData);
 
       const response = await fetch("/api/contact/bookings", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          name: formData.name.trim(),
-          email: formData.email.trim().toLowerCase(),
-          phone: formData.phone.trim(),
-          serviceId: formData.serviceId,
-          serviceName: selectedService.name,
-          price: selectedService.price,
-          date: localDateString, // FIKSET: Bruker lokal dato
-          time,
-        }),
+        body: JSON.stringify(bookingData),
       });
 
-      console.log("Response status:", response.status);
-
-      const responseData = await response.json();
-      console.log("Response data:", responseData);
-
-      if (response.status === 409) {
-        setError(
-          "Beklager, tiden ble nettopp booket av noen andre. Velg en annen tid."
-        );
-        return;
-      }
-
-      if (response.status === 429) {
-        const retryAfter = responseData.retryAfter || 600; // Default 10 minutter
-        const minutes = Math.ceil(retryAfter / 60);
-        setError(
-          `For mange booking-forsøk. Prøv igjen om ${minutes} minutter.`
-        );
-        return;
-      }
+      const result = await response.json();
+      console.log("📥 Booking response:", result);
 
       if (!response.ok) {
-        // Vis detaljerte feilmeldinger fra backend
-        if (responseData.details && Array.isArray(responseData.details)) {
-          const errorMessages = responseData.details
-            .map((detail: any) => detail.message)
-            .join(", ");
-          setError(errorMessages);
-        } else {
-          setError(responseData?.error || "Kunne ikke fullføre booking");
-        }
-        return;
+        throw new Error(
+          result.error || `HTTP error! status: ${response.status}`
+        );
       }
 
-      // Success - kall parent med detaljer!
-      console.log("🎉 Booking successful! Calling parent...");
+      // Success!
+      onBookingSuccess({
+        ...formData,
+        date,
+        time,
+      });
 
-      // Call callback to show modal in parent
-      if (onBookingSuccess) {
-        onBookingSuccess({
-          serviceName: selectedService.name,
-          date: date,
-          time: time,
-          price: selectedService.price,
-        });
-      }
-
-      setFormData({ name: "", email: "", phone: "", serviceId: "" });
-    } catch (err) {
-      console.error("Booking error:", err);
-      const errorMessage =
-        err instanceof Error ? err.message : "En ukjent feil oppstod";
-      setError(errorMessage);
+      // Reset form
+      setFormData({
+        name: "",
+        email: "",
+        phone: "",
+        serviceId: "",
+        serviceName: "",
+        price: 0,
+      });
+    } catch (error) {
+      console.error("❌ Booking error:", error);
+      alert(
+        `Booking feilet: ${
+          error instanceof Error ? error.message : "Ukjent feil"
+        }`
+      );
     } finally {
-      setSubmitting(false);
+      setLoading(false);
     }
   };
 
-  return (
-    <form
-      onSubmit={handleSubmit}
-      className="space-y-5 p-6 bg-white rounded shadow-md max-w-lg mx-auto text-black"
-    >
-      <h3 className="text-xl font-bold text-black">Fyll ut din informasjon</h3>
+  const formatDate = (date: Date) => {
+    if (!isClient) return "";
 
-      {error && (
-        <div className="p-3 bg-red-50 border border-red-200 rounded text-red-700">
-          {error}
+    return date.toLocaleDateString("no-NO", {
+      weekday: "long",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+  };
+
+  const selectedService = allServices.find((s) => s.id === formData.serviceId);
+
+  if (!isClient) {
+    return (
+      <div className="bg-white rounded-lg shadow-md p-6">
+        <div className="animate-pulse">
+          <div className="h-6 bg-gray-200 rounded w-32 mb-6"></div>
+          <div className="bg-pink-50 border border-pink-200 rounded-lg p-4 mb-6">
+            <div className="h-4 bg-gray-200 rounded w-24 mb-2"></div>
+            <div className="space-y-2">
+              <div className="h-3 bg-gray-200 rounded w-40"></div>
+              <div className="h-3 bg-gray-200 rounded w-32"></div>
+            </div>
+          </div>
+          <div className="space-y-4">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i}>
+                <div className="h-4 bg-gray-200 rounded w-20 mb-1"></div>
+                <div className="h-10 bg-gray-200 rounded w-full"></div>
+              </div>
+            ))}
+            <div className="h-12 bg-gray-200 rounded w-full"></div>
+          </div>
         </div>
-      )}
+      </div>
+    );
+  }
 
-      {/* Behandling */}
-      <div>
-        <label className="block text-sm font-medium text-gray-900 mb-1">
-          Velg behandling *
-        </label>
-        <select
-          name="serviceId"
-          required
-          value={formData.serviceId}
-          onChange={handleChange}
-          className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-pink-400 text-black"
+  return (
+    <div className="bg-white rounded-lg shadow-md p-6">
+      <h3 className="text-xl font-semibold text-gray-900 mb-6">Bestill time</h3>
+
+      {/* Booking oversikt */}
+      <div className="bg-pink-50 border border-pink-200 rounded-lg p-4 mb-6">
+        <h4 className="font-medium text-pink-900 mb-2">📋 Din booking:</h4>
+        <div className="space-y-1 text-sm text-black">
+          <div className="flex items-center gap-2">
+            <Calendar className="w-4 h-4" aria-hidden="true" />
+            <span>{formatDate(date)}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Clock className="w-4 h-4" aria-hidden="true" />
+            <span>{time}</span>
+          </div>
+          {selectedService && (
+            <div className="flex items-center gap-2">
+              <CreditCard className="w-4 h-4" aria-hidden="true" />
+              <span>
+                {selectedService.name} - {selectedService.price} NOK
+              </span>
+            </div>
+          )}
+        </div>
+      </div>
+
+      <form onSubmit={handleSubmit} className="space-y-4">
+        {/* Tjeneste - først */}
+        <div>
+          <label
+            htmlFor="serviceId"
+            className="block text-sm font-medium text-gray-700 mb-1"
+          >
+            Velg behandling *
+          </label>
+          <select
+            id="serviceId"
+            name="serviceId"
+            value={formData.serviceId}
+            onChange={handleInputChange}
+            className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500 text-black ${
+              errors.serviceId ? "border-red-500" : "border-gray-300"
+            }`}
+            style={{ color: "black" }}
+            aria-invalid={errors.serviceId ? "true" : "false"}
+            aria-describedby={errors.serviceId ? "service-error" : undefined}
+          >
+            <option value="">Velg behandling...</option>
+            {serviceCategories.map((category) => (
+              <optgroup key={category.category} label={category.category}>
+                {category.services.map((service) => (
+                  <option key={service.id} value={service.id}>
+                    {service.name} - {service.price} NOK
+                  </option>
+                ))}
+              </optgroup>
+            ))}
+          </select>
+          {errors.serviceId && (
+            <p
+              id="service-error"
+              className="text-red-500 text-xs mt-1"
+              role="alert"
+            >
+              {errors.serviceId}
+            </p>
+          )}
+        </div>
+
+        {/* Navn */}
+        <div>
+          <label
+            htmlFor="name"
+            className="block text-sm font-medium text-gray-700 mb-1"
+          >
+            <User className="w-4 h-4 inline mr-1" aria-hidden="true" />
+            Fullt navn *
+          </label>
+          <input
+            type="text"
+            id="name"
+            name="name"
+            value={formData.name}
+            onChange={handleInputChange}
+            className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500 text-black ${
+              errors.name ? "border-red-500" : "border-gray-300"
+            }`}
+            style={{ color: "black" }}
+            placeholder="Skriv inn ditt fulle navn"
+            aria-invalid={errors.name ? "true" : "false"}
+            aria-describedby={errors.name ? "name-error" : undefined}
+          />
+          {errors.name && (
+            <p
+              id="name-error"
+              className="text-red-500 text-xs mt-1"
+              role="alert"
+            >
+              {errors.name}
+            </p>
+          )}
+        </div>
+
+        {/* E-post */}
+        <div>
+          <label
+            htmlFor="email"
+            className="block text-sm font-medium text-gray-700 mb-1"
+          >
+            <Mail className="w-4 h-4 inline mr-1" aria-hidden="true" />
+            E-postadresse *
+          </label>
+          <input
+            type="email"
+            id="email"
+            name="email"
+            value={formData.email}
+            onChange={handleInputChange}
+            className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500 text-black ${
+              errors.email ? "border-red-500" : "border-gray-300"
+            }`}
+            style={{ color: "black" }}
+            placeholder="din@email.no"
+            aria-invalid={errors.email ? "true" : "false"}
+            aria-describedby={errors.email ? "email-error" : undefined}
+          />
+          {errors.email && (
+            <p
+              id="email-error"
+              className="text-red-500 text-xs mt-1"
+              role="alert"
+            >
+              {errors.email}
+            </p>
+          )}
+        </div>
+
+        {/* Telefon */}
+        <div>
+          <label
+            htmlFor="phone"
+            className="block text-sm font-medium text-gray-700 mb-1"
+          >
+            <Phone className="w-4 h-4 inline mr-1" aria-hidden="true" />
+            Telefonnummer *
+          </label>
+          <input
+            type="tel"
+            id="phone"
+            name="phone"
+            value={formData.phone}
+            onChange={handleInputChange}
+            className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500 text-black ${
+              errors.phone ? "border-red-500" : "border-gray-300"
+            }`}
+            style={{ color: "black" }}
+            placeholder="12345678"
+            maxLength={8}
+            aria-invalid={errors.phone ? "true" : "false"}
+            aria-describedby={errors.phone ? "phone-error" : undefined}
+          />
+          {errors.phone && (
+            <p
+              id="phone-error"
+              className="text-red-500 text-xs mt-1"
+              role="alert"
+            >
+              {errors.phone}
+            </p>
+          )}
+        </div>
+
+        {/* Submit knapp */}
+        <button
+          type="submit"
+          disabled={loading}
+          className={`w-full py-3 px-4 rounded-md font-medium transition-colors ${
+            loading
+              ? "bg-gray-400 cursor-not-allowed"
+              : "bg-pink-600 hover:bg-pink-700 text-white"
+          }`}
+          aria-disabled={loading}
         >
-          <option value="" disabled>
-            — Velg behandling —
-          </option>
-          {SERVICE_GROUPS.map((group) => (
-            <optgroup key={group.group} label={group.group}>
-              {group.items.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.name} — {item.price} NOK
-                </option>
-              ))}
-            </optgroup>
-          ))}
-        </select>
-        {selectedService && (
-          <p className="text-sm text-gray-800 mt-1">
-            Pris:{" "}
-            <span className="font-medium">{selectedService.price} NOK</span>
-          </p>
-        )}
-      </div>
+          {loading ? (
+            <div className="flex items-center justify-center">
+              <div
+                className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"
+                aria-hidden="true"
+              ></div>
+              Bestiller...
+            </div>
+          ) : (
+            `Bestill time${
+              selectedService ? ` - ${selectedService.price} NOK` : ""
+            }`
+          )}
+        </button>
+      </form>
 
-      {/* Navn */}
-      <div>
-        <label className="block text-sm font-medium text-gray-900 mb-1">
-          Fullt navn *
-        </label>
-        <input
-          type="text"
-          name="name"
-          placeholder="Ola Nordmann"
-          value={formData.name}
-          onChange={handleChange}
-          required
-          maxLength={100}
-          className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-pink-400 text-black"
-        />
+      <div className="mt-4 text-xs text-gray-500">
+        <p>* Påkrevde felt</p>
+        <p>Du vil motta en e-post bekreftelse etter booking.</p>
       </div>
-
-      {/* E-post */}
-      <div>
-        <label className="block text-sm font-medium text-gray-900 mb-1">
-          E-post *
-        </label>
-        <input
-          type="email"
-          name="email"
-          placeholder="ola@example.com"
-          value={formData.email}
-          onChange={handleChange}
-          required
-          maxLength={100}
-          className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-pink-400 text-black"
-        />
-      </div>
-
-      {/* Telefon */}
-      <div>
-        <label className="block text-sm font-medium text-gray-900 mb-1">
-          Telefon (8 siffer) *
-        </label>
-        <input
-          type="tel"
-          name="phone"
-          placeholder="12345678"
-          pattern="^\d{8}$"
-          title="Skriv inn et gyldig norsk telefonnummer (8 siffer)"
-          value={formData.phone}
-          onChange={handleChange}
-          required
-          maxLength={8}
-          className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-pink-400 text-black"
-        />
-        <p className="text-xs text-gray-600 mt-1">
-          Kun norske telefonnummer (8 siffer)
-        </p>
-      </div>
-
-      <button
-        type="submit"
-        disabled={submitting}
-        className="w-full bg-pink-600 text-white py-3 rounded hover:bg-pink-700 transition duration-200 disabled:opacity-60 disabled:cursor-not-allowed font-medium"
-      >
-        {submitting ? (
-          <span className="flex items-center justify-center">
-            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-            Sender...
-          </span>
-        ) : (
-          `Book ${
-            selectedService ? selectedService.name + " – " : ""
-          }${time} – ${date.toLocaleDateString("no-NO")}`
-        )}
-      </button>
-    </form>
+    </div>
   );
 }

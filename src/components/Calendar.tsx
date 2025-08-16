@@ -1,61 +1,198 @@
 "use client";
 
-import React from "react";
-import DatePicker from "react-datepicker";
-import "react-datepicker/dist/react-datepicker.css";
+import { useState, useEffect } from "react";
+import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
 
 interface CalendarProps {
   selectedDate: Date | null;
   onDateChange: (date: Date) => void;
-  onError?: (message: string) => void; // Ny prop for feilhåndtering
 }
 
-const Calendar: React.FC<CalendarProps> = ({
+export default function Calendar({
   selectedDate,
   onDateChange,
-  onError,
-}) => {
-  // Funksjon for å sjekke om en dato kan velges
-  const isDateSelectable = (date: Date) => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const checkDate = new Date(date);
-    checkDate.setHours(0, 0, 0, 0);
+}: CalendarProps) {
+  const [currentMonth, setCurrentMonth] = useState<Date | null>(null);
+  const [isClient, setIsClient] = useState(false);
 
-    return checkDate >= today;
+  // Prevent hydration mismatch by only rendering on client
+  useEffect(() => {
+    setCurrentMonth(new Date());
+    setIsClient(true);
+  }, []);
+
+  const monthNames = [
+    "Januar",
+    "Februar",
+    "Mars",
+    "April",
+    "Mai",
+    "Juni",
+    "Juli",
+    "August",
+    "September",
+    "Oktober",
+    "November",
+    "Desember",
+  ];
+
+  const dayNames = ["Søn", "Man", "Tir", "Ons", "Tor", "Fre", "Lør"];
+
+  // Don't render anything until client-side
+  if (!isClient || !currentMonth) {
+    return (
+      <div className="bg-white rounded-lg shadow-md p-6 max-w-md mx-auto">
+        <div className="animate-pulse">
+          <div className="flex items-center justify-between mb-4">
+            <div className="w-8 h-8 bg-gray-200 rounded-full"></div>
+            <div className="h-6 bg-gray-200 rounded w-32"></div>
+            <div className="w-8 h-8 bg-gray-200 rounded-full"></div>
+          </div>
+          <div className="grid grid-cols-7 gap-1 mb-2">
+            {Array.from({ length: 7 }).map((_, i) => (
+              <div key={i} className="h-8 bg-gray-200 rounded"></div>
+            ))}
+          </div>
+          <div className="grid grid-cols-7 gap-1">
+            {Array.from({ length: 35 }).map((_, i) => (
+              <div key={i} className="aspect-square bg-gray-200 rounded"></div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const firstDayOfMonth = new Date(
+    currentMonth.getFullYear(),
+    currentMonth.getMonth(),
+    1
+  );
+  const lastDayOfMonth = new Date(
+    currentMonth.getFullYear(),
+    currentMonth.getMonth() + 1,
+    0
+  );
+  const firstDayOfWeek = firstDayOfMonth.getDay();
+
+  const daysInMonth = lastDayOfMonth.getDate();
+  const daysArray = [];
+
+  // Legg til tomme celler for dager før måneden starter
+  for (let i = 0; i < firstDayOfWeek; i++) {
+    daysArray.push(null);
+  }
+
+  // Legg til alle dager i måneden
+  for (let day = 1; day <= daysInMonth; day++) {
+    daysArray.push(
+      new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day)
+    );
+  }
+
+  const goToPreviousMonth = () => {
+    if (currentMonth) {
+      setCurrentMonth(
+        new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1)
+      );
+    }
   };
 
-  const handleDateChange = (date: Date | null) => {
-    if (!date) return;
-
-    // Sjekk om datoen er i fortiden
-    if (!isDateSelectable(date)) {
-      // Kall onError callback hvis den eksisterer
-      if (onError) {
-        onError("Kan ikke booke tid i fortiden.");
-      }
-      return; // Ikke oppdater datoen
+  const goToNextMonth = () => {
+    if (currentMonth) {
+      setCurrentMonth(
+        new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1)
+      );
     }
+  };
 
-    // Dato er gyldig, oppdater
-    onDateChange(date);
+  const isDateDisabled = (date: Date) => {
+    const dayOfWeek = date.getDay();
+    return date < today || dayOfWeek === 0; // Søndager er stengt
+  };
+
+  const isDateSelected = (date: Date) => {
+    return (
+      selectedDate &&
+      date.getDate() === selectedDate.getDate() &&
+      date.getMonth() === selectedDate.getMonth() &&
+      date.getFullYear() === selectedDate.getFullYear()
+    );
   };
 
   return (
-    <div className="flex justify-center p-4">
-      <div className="rounded-xl shadow-lg p-4 bg-white border border-gray-200">
-        <DatePicker
-          selected={selectedDate}
-          onChange={handleDateChange}
-          dateFormat="dd.MM.yyyy"
-          inline
-          minDate={new Date()}
-          calendarClassName="!border-0 !shadow-none"
-          wrapperClassName="w-full"
-        />
+    <div className="bg-white rounded-lg shadow-md p-6 max-w-md mx-auto">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-4">
+        <button
+          onClick={goToPreviousMonth}
+          className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+          aria-label="Forrige måned"
+        >
+          <ChevronLeftIcon className="w-5 h-5" />
+        </button>
+
+        <h2 className="text-lg font-semibold text-gray-900">
+          {monthNames[currentMonth.getMonth()]} {currentMonth.getFullYear()}
+        </h2>
+
+        <button
+          onClick={goToNextMonth}
+          className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+          aria-label="Neste måned"
+        >
+          <ChevronRightIcon className="w-5 h-5" />
+        </button>
+      </div>
+
+      {/* Dag headers */}
+      <div className="grid grid-cols-7 gap-1 mb-2">
+        {dayNames.map((day) => (
+          <div
+            key={day}
+            className="text-center text-sm font-medium text-gray-500 py-2"
+          >
+            {day}
+          </div>
+        ))}
+      </div>
+
+      {/* Kalender grid */}
+      <div className="grid grid-cols-7 gap-1">
+        {daysArray.map((date, index) => (
+          <div key={index} className="aspect-square">
+            {date ? (
+              <button
+                onClick={() => !isDateDisabled(date) && onDateChange(date)}
+                disabled={isDateDisabled(date)}
+                className={`
+                  w-full h-full flex items-center justify-center text-sm rounded-lg transition-colors
+                  ${
+                    isDateDisabled(date)
+                      ? "text-gray-300 cursor-not-allowed"
+                      : isDateSelected(date)
+                      ? "bg-pink-600 text-white"
+                      : "text-gray-900 hover:bg-pink-100"
+                  }
+                `}
+                aria-label={`${date.getDate()}. ${monthNames[date.getMonth()]}`}
+              >
+                {date.getDate()}
+              </button>
+            ) : (
+              <div className="w-full h-full" aria-hidden="true"></div>
+            )}
+          </div>
+        ))}
+      </div>
+
+      <div className="mt-4 text-xs text-gray-500 text-center">
+        <p>Søndager er stengt</p>
+        <p>Velg en dato for å se ledige tider</p>
       </div>
     </div>
   );
-};
-
-export default Calendar;
+}
