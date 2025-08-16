@@ -119,7 +119,7 @@ export async function GET(req: NextRequest) {
 
     console.log("Taken times (formatted):", takenTimes);
 
-    // Generer alle mulige tider for dagen
+    // Generer alle mulige tider for dagen - ENDRET TIL HVER TIME
     const date = new Date(dateParam);
     const dayOfWeek = date.getDay(); // 0 = søndag, 6 = lørdag
 
@@ -129,18 +129,18 @@ export async function GET(req: NextRequest) {
       // Søndag - stengt
       allSlots = [];
     } else if (dayOfWeek === 6) {
-      // Lørdag: 09:00 - 15:00
+      // Lørdag: 09:00 - 15:00 (hver time)
       for (let hour = 9; hour < 15; hour++) {
         const h = hour.toString().padStart(2, "0");
         allSlots.push(`${h}:00`);
-        allSlots.push(`${h}:30`);
+        // Fjernet 30-minutters slots
       }
     } else {
-      // Ukedager: 09:00 - 19:00
+      // Ukedager: 09:00 - 19:00 (hver time)
       for (let hour = 9; hour < 19; hour++) {
         const h = hour.toString().padStart(2, "0");
         allSlots.push(`${h}:00`);
-        allSlots.push(`${h}:30`);
+        // Fjernet 30-minutters slots
       }
     }
 
