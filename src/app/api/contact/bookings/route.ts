@@ -139,3 +139,115 @@ export async function GET(req: NextRequest) {
     );
   }
 }
+
+// POST /api/contact/bookings - Opprett ny booking
+export async function POST(req: NextRequest) {
+  try {
+    // Parse request body
+    let body;
+    try {
+      body = await req.json();
+    } catch (error) {
+      return NextResponse.json(
+        { error: "Ugyldig JSON i request" },
+        { status: 400 }
+      );
+    }
+
+    // Valider input med Zod
+    const validationResult = bookingSchema.safeParse(body);
+
+    if (!validationResult.success) {
+      const errors = validationResult.error.issues.map((err: any) => ({
+        field: err.path.join("."),
+        message: err.message,
+      }));
+
+      return NextResponse.json(
+        {
+          error: "Ugyldig input",
+          details: errors,
+        },
+        { status: 400 }
+      );
+    }
+
+    const { name, email, phone, serviceId, serviceName, price, date, time } =
+      validationResult.data;
+
+    // Opprett dato/tid objekt med norsk tidssone
+    const [year, month, day] = date.split("-").map(Number);
+    const [hours, minutes] = time.split(":").map(Number);
+    const bookingDateTime = new Date(
+      year,
+      month - 1,
+      day,
+      hours,
+      minutes,
+      0,
+      0
+    );
+
+    // Sjekk at booking er i fremtiden
+    const now = new Date();
+    const timeDifferenceHours =
+      (bookingDateTime.getTime() - now.getTime()) / (1000 * 60 * 60);
+
+    if (timeDifferenceHours < 0.5) {
+      return NextResponse.json(
+        {
+          error:
+            "Kan ikke booke tid i fortiden eller for nært i tid. Vennligst velg en tid minst 30 minutter frem i tid.",
+        },
+        { status: 400 }
+      );
+    }
+
+    // Sanitiser navn
+    const sanitizedName = name.trim().replace(/\s+/g, " ");
+
+    // Opprett booking i database
+    const booking = await createBooking({
+      name: sanitizedName,
+      email: email.toLowerCase(),
+      phone,
+      serviceId,
+      serviceName,
+      price: Number(price),
+      startAt: bookingDateTime,
+    });
+
+    // Send e-post bekreftelse
+    try {
+      const emailResult = await sendBookingConfirmation({
+        name: sanitizedName,
+        email: email.toLowerCase(),
+        phone,
+        serviceName,
+        price: Number(price),
+        date,
+        time,
+      });
+
+      if (!emailResult.success) {
+        // E-post feilet, men booking er lagret
+      }
+    } catch (emailError) {
+      // E-post feilet, men booking er lagret
+    }
+
+    return NextResponse.json({
+      ok: true,
+      bookingId: booking.id,
+      message: "Booking opprettet og e-post sendt",
+    });
+  } catch (err: unknown) {
+    return NextResponse.json(
+      {
+        error: "Internal Server Error",
+        details: err instanceof Error ? err.message : "Unknown error",
+      },
+      { status: 500 }
+    );
+  }
+}
