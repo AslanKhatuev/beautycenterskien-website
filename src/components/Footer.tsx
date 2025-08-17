@@ -97,7 +97,6 @@ export default function Footer() {
       <div className="text-center text-sm sm:text-base text-gray-400 mt-8 space-y-2">
         <p>&copy; {new Date().getFullYear()} Beauty Center Skien.</p>
         <div className="flex flex-col items-center mt-2 space-y-1">
-          <p className="text-base font-medium text-gray-300">Utviklet av:</p>
           <a
             href="https://www.instagram.com/skyline.interface?igsh=MWZycDBkcWZlcjJ4ZQ%3D%3D&utm_source=qr"
             target="_blank"

@@ -197,13 +197,17 @@ export default function BookingForm({
     setLoading(true);
 
     try {
+      // FIX: Bruk lokal tidssone for dato
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const day = String(date.getDate()).padStart(2, "0");
+      const dateString = `${year}-${month}-${day}`;
+
       const bookingData = {
         ...formData,
-        date: date.toISOString().split("T")[0],
+        date: dateString,
         time: time,
       };
-
-      console.log("Sending booking data:", bookingData);
 
       const response = await fetch("/api/contact/bookings", {
         method: "POST",
@@ -214,7 +218,6 @@ export default function BookingForm({
       });
 
       const result = await response.json();
-      console.log("Booking response:", result);
 
       if (!response.ok) {
         throw new Error(
@@ -239,7 +242,6 @@ export default function BookingForm({
         price: 0,
       });
     } catch (error) {
-      console.error("Booking error:", error);
       alert(
         `Booking feilet: ${
           error instanceof Error ? error.message : "Ukjent feil"

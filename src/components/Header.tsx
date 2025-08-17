@@ -13,7 +13,7 @@ export default function Header() {
           <Image
             src="/beautycenter.jpg"
             alt="Massasjelogo"
-            width={140} 
+            width={100} 
             height={70} 
             className="rounded-[10px]" 
             priority

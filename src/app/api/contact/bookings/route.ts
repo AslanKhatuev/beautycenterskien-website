@@ -63,6 +63,21 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Invalid date format" }, { status: 400 });
   }
 
+  // Debug logging for dato
+  // Debug logging for dato - MED NORSK TIDSSONE
+  const [year, month, day] = dateParam.split("-").map(Number);
+  const date = new Date(year, month - 1, day); // Lokal tid (Norge)
+
+  console.log("📅 Raw dateParam:", dateParam);
+  console.log("📅 Parsed year/month/day:", year, month, day);
+  console.log("📅 Date object (Norge tid):", date);
+  console.log(
+    "📅 Day of week:",
+    date.getDay(),
+    "(0=søndag, 1=mandag, 6=lørdag)"
+  );
+  console.log("📅 toISOString:", date.toISOString());
+  console.log("📅 toLocaleDateString Norge:", date.toLocaleDateString("no-NO"));
   try {
     console.log("Testing Turso database connection...");
 
@@ -88,7 +103,6 @@ export async function GET(req: NextRequest) {
     console.log("Taken times (formatted):", takenTimes);
 
     // Generer alle mulige tider for dagen - HVER TIME
-    const date = new Date(dateParam);
     const dayOfWeek = date.getDay(); // 0 = søndag, 6 = lørdag
 
     let allSlots: string[] = [];
@@ -189,163 +203,6 @@ export async function GET(req: NextRequest) {
       {
         error: "Database error",
         details: error instanceof Error ? error.message : "Unknown error",
-      },
-      { status: 500 }
-    );
-  }
-}
-
-// Forbedret tidssone-konvertering
-function toStartAtISO(dateStr: string, timeStr: string) {
-  console.log(`🔧 toStartAtISO: input = ${dateStr} ${timeStr}`);
-
-  const [year, month, day] = dateStr.split("-").map(Number);
-  const [hours, minutes] = timeStr.split(":").map(Number);
-
-  console.log(
-    `🔧 Parsed: year=${year}, month=${month}, day=${day}, hours=${hours}, minutes=${minutes}`
-  );
-
-  // Opprett dato i lokal tid (ikke UTC) - month-1 fordi JavaScript måneder er 0-basert
-  const localDate = new Date(year, month - 1, day, hours, minutes, 0, 0);
-
-  console.log(`🔧 Created date object: ${localDate.toISOString()}`);
-  console.log(`🔧 Local representation: ${localDate.toLocaleString("no-NO")}`);
-
-  return localDate;
-}
-
-export async function POST(req: NextRequest) {
-  try {
-    console.log("POST booking request (Turso)");
-
-    // Parse request body
-    let body;
-    try {
-      body = await req.json();
-    } catch (error) {
-      return NextResponse.json(
-        { error: "Ugyldig JSON i request" },
-        { status: 400 }
-      );
-    }
-
-    // Valider input med Zod
-    const validationResult = bookingSchema.safeParse(body);
-
-    if (!validationResult.success) {
-      const errors = validationResult.error.issues.map((err: any) => ({
-        field: err.path.join("."),
-        message: err.message,
-      }));
-
-      console.log("Validation errors:", errors);
-
-      return NextResponse.json(
-        {
-          error: "Ugyldig input",
-          details: errors,
-        },
-        { status: 400 }
-      );
-    }
-
-    const { name, email, phone, serviceId, serviceName, price, date, time } =
-      validationResult.data;
-
-    // Dato/tid validering
-    console.log(`🔧 RAW INPUT: date="${date}" time="${time}"`);
-
-    const bookingDateTime = toStartAtISO(date, time);
-    const now = new Date();
-
-    console.log(`🔧 Backend validation:`);
-    console.log(`  Booking: ${bookingDateTime.toLocaleString("no-NO")}`);
-    console.log(`  Now: ${now.toLocaleString("no-NO")}`);
-
-    // Beregn forskjell i timer
-    const timeDifferenceHours =
-      (bookingDateTime.getTime() - now.getTime()) / (1000 * 60 * 60);
-    console.log(`  Hours difference: ${timeDifferenceHours.toFixed(2)}`);
-
-    // Økt buffer til 30 minutter (0.5 timer) for sikkerhet
-    if (timeDifferenceHours < 0.5) {
-      console.log(
-        `Booking is ${Math.abs(timeDifferenceHours).toFixed(
-          1
-        )} hours in the past or too close to current time`
-      );
-      return NextResponse.json(
-        {
-          error:
-            "Kan ikke booke tid i fortiden eller for nært i tid. Vennligst velg en tid minst 30 minutter frem i tid.",
-        },
-        { status: 400 }
-      );
-    }
-
-    // Sanitiser navn (fjern ekstra mellomrom)
-    const sanitizedName = name.trim().replace(/\s+/g, " ");
-
-    // Opprett booking i Turso database
-    const booking = await createBooking({
-      name: sanitizedName,
-      email: email.toLowerCase(),
-      phone,
-      serviceId,
-      serviceName,
-      price: Number(price),
-      startAt: bookingDateTime,
-    });
-
-    console.log("Booking created in Turso:", {
-      id: booking.id,
-      startAt: booking.startAt.toISOString(),
-      localTime: booking.startAt.toLocaleString("no-NO"),
-    });
-
-    // Send e-post bekreftelse
-    try {
-      const emailResult = await sendBookingConfirmation({
-        name: sanitizedName,
-        email: email.toLowerCase(),
-        phone,
-        serviceName,
-        price: Number(price),
-        date,
-        time,
-      });
-
-      if (!emailResult.success) {
-        console.error("⚠️ E-post kunne ikke sendes:", emailResult.error);
-        // Vi fortsetter likevel siden bookingen er lagret
-      } else {
-        console.log("E-post bekreftelse sendt");
-      }
-    } catch (emailError) {
-      console.error("⚠️ E-post feil:", emailError);
-      // Vi fortsetter likevel siden bookingen er lagret
-    }
-
-    return NextResponse.json({
-      ok: true,
-      bookingId: booking.id,
-      message: "Booking opprettet og e-post sendt",
-    });
-  } catch (err: unknown) {
-    console.error("POST /api/contact/bookings error:", err);
-
-    // Mer detaljert feilmeldinger
-    if (err instanceof Error) {
-      console.error("Error name:", err.name);
-      console.error("Error message:", err.message);
-      console.error("Error stack:", err.stack);
-    }
-
-    return NextResponse.json(
-      {
-        error: "Internal Server Error",
-        details: err instanceof Error ? err.message : "Unknown error",
       },
       { status: 500 }
     );

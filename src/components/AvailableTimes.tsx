@@ -31,8 +31,11 @@ export default function AvailableTimes({
       setError(null);
 
       try {
-        const dateString = date.toISOString().split("T")[0];
-        console.log("Fetching available times for date:", dateString);
+        // Bruk lokal tidssone, ikke UTC
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, "0");
+        const day = String(date.getDate()).padStart(2, "0");
+        const dateString = `${year}-${month}-${day}`;
 
         const response = await fetch(
           `/api/contact/bookings?date=${dateString}`
@@ -40,18 +43,14 @@ export default function AvailableTimes({
 
         if (!response.ok) {
           const errorData = await response.json();
-          console.error("API Error:", response.status, errorData);
           throw new Error(
             `API feil (${response.status}): ${JSON.stringify(errorData)}`
           );
         }
 
         const data = await response.json();
-        console.log("Available times received:", data);
-
         setAvailableTimes(data.available || []);
       } catch (error) {
-        console.error("Full error:", error);
         setError(error instanceof Error ? error.message : "Ukjent feil");
         setAvailableTimes([]);
       } finally {
