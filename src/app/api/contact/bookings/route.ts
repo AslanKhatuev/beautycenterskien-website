@@ -83,7 +83,7 @@ export async function GET(req: NextRequest) {
       allSlots = [];
     } else if (dayOfWeek === 6) {
       // Lørdag: 09:00 - 14:00
-      for (let hour = 9; hour < 14; hour++) {
+      for (let hour = 9; hour < 15; hour++) {
         const h = hour.toString().padStart(2, "0");
         allSlots.push(`${h}:00`);
       }
